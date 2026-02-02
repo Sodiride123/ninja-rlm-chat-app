@@ -147,6 +147,7 @@ class WebProgressPrinter:
         self.enabled = enabled
         self._iteration_count = 0
         self._max_iterations = 30  # Default, updated from metadata
+        self._last_iteration_start = 0  # Track which iteration we last emitted iteration_start for
 
     def _make_event(self, event_type: str, **kwargs) -> dict:
         """Create a base event dict."""
@@ -188,9 +189,26 @@ class WebProgressPrinter:
         """Emit LLM response event immediately when received."""
         if not self.enabled:
             return
+
+        # Note: iteration count is incremented in print_iteration(), but that's called
+        # AFTER this method. We emit iteration_start here (first event in iteration).
+        # The iteration number hasn't been updated yet, so we use _iteration_count + 1.
+        current_iteration = self._iteration_count + 1
+
+        # Emit iteration_start before the LLM response (first time for this iteration)
+        # We need to track if we already emitted iteration_start to avoid duplicates
+        if not hasattr(self, '_last_iteration_start') or self._last_iteration_start != current_iteration:
+            iteration_start_event = self._make_event(
+                "iteration_start",
+                iteration=current_iteration,
+                max_iterations=self._max_iterations,
+            )
+            self.emit(iteration_start_event)
+            self._last_iteration_start = current_iteration
+
         event = self._make_event(
             "llm_response",
-            iteration=self._iteration_count,
+            iteration=current_iteration,
             response=str(response) if response else "",
             time_ms=int((iteration_time or 0) * 1000),
         )
@@ -203,10 +221,13 @@ class WebProgressPrinter:
 
         result = code_block.result
 
+        # Use the same iteration numbering as print_completion
+        current_iteration = self._iteration_count + 1
+
         # Emit code start event
         code_start_event = self._make_event(
             "code_start",
-            iteration=self._iteration_count,
+            iteration=current_iteration,
             code=str(code_block.code) if code_block.code else "",
         )
         self.emit(code_start_event)
@@ -214,7 +235,7 @@ class WebProgressPrinter:
         # Emit code result event
         code_result_event = self._make_event(
             "code_result",
-            iteration=self._iteration_count,
+            iteration=current_iteration,
             stdout=str(result.stdout) if result.stdout else "",
             stderr=str(result.stderr) if result.stderr else "",
             time_ms=int((result.execution_time or 0) * 1000),
@@ -232,9 +253,13 @@ class WebProgressPrinter:
         """Emit subcall event immediately when a sub-LLM call completes."""
         if not self.enabled:
             return
+
+        # Use the same iteration numbering as print_completion
+        current_iteration = self._iteration_count + 1
+
         event = self._make_event(
             "subcall_complete",
-            iteration=self._iteration_count,
+            iteration=current_iteration,
             model=model,
             response_preview=response_preview[:500] if response_preview else "",
             time_ms=int((execution_time or 0) * 1000),
@@ -242,11 +267,15 @@ class WebProgressPrinter:
         self.emit(event)
 
     def print_iteration(self, iteration: RLMIteration, iteration_num: int) -> None:
-        """Emit iteration events (mostly handled by logger)."""
+        """Update iteration tracking (events already emitted during _completion_turn)."""
         if not self.enabled:
             return
-        # Emit iteration start (logger handles the rest)
-        self.print_iteration_start(iteration_num)
+        # Update iteration count for tracking
+        # Note: iteration_start is already emitted in print_completion (called during _completion_turn)
+        # All other events (llm_response, code_start, code_result, subcall_complete) are also
+        # emitted during _completion_turn. This method is called AFTER the iteration completes
+        # (see rlm.py line 248), so we just update the count here.
+        self._iteration_count = iteration_num
 
     def print_final_answer(self, answer: Any) -> None:
         """Emit final answer event (handled by logger)."""
