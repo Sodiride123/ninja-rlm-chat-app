@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ProgressEvent } from '@/lib/types';
 
 interface ProgressPanelProps {
@@ -27,6 +27,12 @@ export function ProgressPanel({
   // Track heartbeat activity
   const [lastHeartbeat, setLastHeartbeat] = useState<number>(0);
 
+  // Smart auto-scroll state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const eventsEndRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showJumpButton, setShowJumpButton] = useState(false);
+
   // Toggle event expansion
   const toggleEvent = (index: number) => {
     setExpandedEvents(prev => {
@@ -39,6 +45,45 @@ export function ProgressPanel({
       return next;
     });
   };
+
+  // Check if scrolled to bottom (with small threshold)
+  const checkIfAtBottom = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return true;
+    const threshold = 50;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  }, []);
+
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    const atBottom = checkIfAtBottom();
+    setIsAtBottom(atBottom);
+    setShowJumpButton(!atBottom && events.length > 0);
+  }, [checkIfAtBottom, events.length]);
+
+  // Scroll to bottom helper
+  const scrollToBottom = useCallback((smooth = true) => {
+    eventsEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    setIsAtBottom(true);
+    setShowJumpButton(false);
+  }, []);
+
+  // Auto-scroll when new events arrive (only if at bottom)
+  useEffect(() => {
+    if (isAtBottom && events.length > 0) {
+      scrollToBottom();
+    } else if (events.length > 0 && !isAtBottom) {
+      setShowJumpButton(true);
+    }
+  }, [events.length, isAtBottom, scrollToBottom]);
+
+  // Reset scroll state when events are cleared
+  useEffect(() => {
+    if (events.length === 0) {
+      setIsAtBottom(true);
+      setShowJumpButton(false);
+    }
+  }, [events.length]);
 
   // Ensure events is always an array
   const safeEvents = events || [];
@@ -462,7 +507,11 @@ export function ProgressPanel({
       </div>
 
       {/* Event Timeline */}
-      <div className="flex-1 overflow-y-auto p-3 dark-scrollbar">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-3 dark-scrollbar relative"
+      >
         {displayEvents.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -528,7 +577,24 @@ export function ProgressPanel({
                 </div>
               );
             })}
+            <div ref={eventsEndRef} />
           </div>
+        )}
+
+        {/* Jump to latest button */}
+        {showJumpButton && (
+          <button
+            onClick={() => scrollToBottom()}
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5
+                       bg-panel-surface/95 backdrop-blur-sm rounded-full shadow-lg
+                       border border-panel-border text-xs text-panel-text-secondary
+                       hover:text-panel-text hover:bg-panel-surface-hover transition-all duration-200"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            Latest
+          </button>
         )}
       </div>
 

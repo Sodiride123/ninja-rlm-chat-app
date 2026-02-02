@@ -61,11 +61,16 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Track which messages have been "seen" to animate only new ones
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const prevMessagesLengthRef = useRef(messages.length);
+
+  // Smart auto-scroll state
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showJumpButton, setShowJumpButton] = useState(false);
 
   // Update seen count when messages change (but not for the newest assistant message)
   useEffect(() => {
@@ -84,10 +89,37 @@ export function ChatPanel({
     prevMessagesLengthRef.current = currentLength;
   }, [messages.length]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Check if scrolled to bottom (with small threshold)
+  const checkIfAtBottom = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return true;
+    const threshold = 100; // pixels from bottom
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  }, []);
+
+  // Handle scroll events to track position
+  const handleScroll = useCallback(() => {
+    const atBottom = checkIfAtBottom();
+    setIsAtBottom(atBottom);
+    setShowJumpButton(!atBottom && (messages.length > 0 || isProcessing));
+  }, [checkIfAtBottom, messages.length, isProcessing]);
+
+  // Scroll to bottom helper
+  const scrollToBottom = useCallback((smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    setIsAtBottom(true);
+    setShowJumpButton(false);
+  }, []);
+
+  // Auto-scroll when new messages arrive (only if already at bottom)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isAtBottom) {
+      scrollToBottom();
+    } else {
+      // Show jump button when new content arrives and user is scrolled up
+      setShowJumpButton(true);
+    }
+  }, [messages, isProcessing, isAtBottom, scrollToBottom]);
 
   // Auto-resize textarea based on content
   const adjustTextareaHeight = useCallback(() => {
@@ -113,6 +145,9 @@ export function ChatPanel({
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
+      // Scroll to bottom on submit (optimistic)
+      setIsAtBottom(true);
+      setTimeout(() => scrollToBottom(false), 50);
     }
   };
 
@@ -136,9 +171,13 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-primary">
+    <div className="flex flex-col h-full bg-surface-primary relative">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-6 space-y-5"
+      >
         {!hasSession ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center max-w-sm">
@@ -233,7 +272,7 @@ export function ChatPanel({
         {/* Processing indicator */}
         {isProcessing && (
           <div className="flex justify-start">
-            <div className="bg-surface-tertiary rounded-2xl px-4 py-3">
+            <div className="bg-surface-tertiary rounded-2xl px-4 py-3 ml-[10%]">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -248,6 +287,24 @@ export function ChatPanel({
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Jump to latest button */}
+      {showJumpButton && (
+        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-10">
+          <button
+            onClick={() => scrollToBottom()}
+            className="flex items-center gap-2 px-4 py-2 bg-surface-secondary/95 backdrop-blur-sm
+                       rounded-full shadow-lg border border-border/50
+                       text-sm text-text-secondary hover:text-text-primary
+                       hover:bg-surface-hover transition-all duration-200"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            Jump to latest
+          </button>
+        </div>
+      )}
 
       {/* Floating Composer Input */}
       <div className="p-4 pb-6 bg-gradient-to-t from-surface-primary via-surface-primary to-transparent">
