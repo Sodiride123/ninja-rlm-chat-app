@@ -1,0 +1,63 @@
+[project]
+name = "rlm-conversation"
+version = "0.1.0"
+description = "Web-based AI chat application for ultra-long-context document understanding using RLM (Recursive Language Models)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    # RLM core dependencies
+    "anthropic>=0.75.0",
+    "google-genai>=1.56.0",
+    "openai>=2.14.0",
+    "portkey-ai>=2.1.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+    "rich>=13.0.0",
+    # Web backend dependencies
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.6",
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+modal = ["modal>=0.73.0", "dill>=0.3.7"]
+daytona = ["daytona>=0.128.1", "dill>=0.3.7"]
+prime = ["prime-sandboxes>=0.2.0", "dill>=0.3.7"]
+dev = [
+    "pre-commit>=4.5.1",
+    "ruff>=0.14.10",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["rlm", "rlm.*", "backend", "backend.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.format]
+quote-style = "double"

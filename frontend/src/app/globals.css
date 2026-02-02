@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles for smoother rendering */
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  body {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom scrollbar - refined, subtle */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+  background-clip: content-box;
+}
+
+/* Dark scrollbar for progress panel */
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: #404040;
+  background-clip: content-box;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+  background-clip: content-box;
+}
+
+/* Gentle bounce animation for loading dots */
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1.2s ease-in-out infinite;
+}
+
+/* Smooth indeterminate progress bar */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.animate-indeterminate {
+  animation: indeterminate 2s ease-in-out infinite;
+}
+
+/* Resizable panel styles */
+.resize-handle {
+  touch-action: none;
+}
+
+/* Prevent text selection while resizing */
+.resizing * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Progress event animations - calm and subtle */
+@keyframes slideInFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInFade 0.25s ease-out forwards;
+}
+
+/* Staggered animation delays for multiple events */
+.animate-stagger-1 { animation-delay: 0ms; }
+.animate-stagger-2 { animation-delay: 40ms; }
+.animate-stagger-3 { animation-delay: 80ms; }
+.animate-stagger-4 { animation-delay: 120ms; }
+.animate-stagger-5 { animation-delay: 160ms; }
+
+/* Gentle pulse for live indicator */
+@keyframes gentlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-gentle-pulse {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+/* Message reveal animation - smooth, premium feel */
+@keyframes messageReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-message-reveal {
+  animation: messageReveal 0.4s ease-out forwards;
+}
+
+/* Typewriter-style text reveal for assistant messages */
+@keyframes textReveal {
+  0% {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.animate-text-reveal {
+  animation: textReveal 0.6s ease-out forwards;
+}
+
+/* Staggered paragraph reveal */
+.reveal-paragraph {
+  opacity: 0;
+  animation: messageReveal 0.4s ease-out forwards;
+}
+
+.reveal-paragraph:nth-child(1) { animation-delay: 0ms; }
+.reveal-paragraph:nth-child(2) { animation-delay: 100ms; }
+.reveal-paragraph:nth-child(3) { animation-delay: 200ms; }
+.reveal-paragraph:nth-child(4) { animation-delay: 300ms; }
+.reveal-paragraph:nth-child(5) { animation-delay: 400ms; }
+.reveal-paragraph:nth-child(6) { animation-delay: 500ms; }
+.reveal-paragraph:nth-child(7) { animation-delay: 600ms; }
+.reveal-paragraph:nth-child(8) { animation-delay: 700ms; }
+.reveal-paragraph:nth-child(9) { animation-delay: 800ms; }
+.reveal-paragraph:nth-child(10) { animation-delay: 900ms; }
