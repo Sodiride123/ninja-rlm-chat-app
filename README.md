@@ -2,8 +2,6 @@
 
 Web-based AI chat application for ultra-long-context document understanding and QA, using [RLM (Recursive Language Models)](https://github.com/anthropics/rlm) as the core inference framework.
 
-> **💡 Want to make this app publicly accessible?** See [PUBLIC_ACCESS.md](PUBLIC_ACCESS.md) for a 3-step guide!
-
 ## Features
 
 - **Document Upload**: Support for PDF, TXT, MD, and DOCX files

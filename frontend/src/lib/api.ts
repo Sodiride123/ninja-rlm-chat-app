@@ -156,10 +156,8 @@ export async function getRunProgress(sessionId: string, runId: string): Promise<
 
 // SSE Stream URL (for EventSource)
 // Connect directly to backend to avoid Next.js proxy buffering SSE responses
-// For public access, use /api (which nginx/proxy will route to backend)
-// For local dev, can override with NEXT_PUBLIC_BACKEND_URL
 const SSE_BASE = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_BACKEND_URL ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api` : '/api')
+  ? 'http://127.0.0.1:9124/api'  // Direct backend connection for SSE
   : '/api';
 
 export function getStreamUrl(sessionId: string, runId: string): string {
