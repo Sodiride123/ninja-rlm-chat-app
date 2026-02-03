@@ -19,7 +19,7 @@ Web-based AI chat application for ultra-long-context document understanding and 
 
 - Python 3.11+
 - Node.js 18+
-- Anthropic API key (for Claude models) and/or OpenAI API key (for GPT models)
+- LiteLLM proxy access (for Claude models) and/or OpenAI API key (for GPT models)
 
 ### 1. Setup Environment
 
@@ -29,8 +29,11 @@ cd RLM-Conversation
 # Create .env from example
 cp .env.example .env
 
-# Edit .env and add your API keys
-# ANTHROPIC_API_KEY=your-anthropic-key-here
+# Edit .env and configure LiteLLM proxy for Claude models:
+# ANTHROPIC_BASE_URL=http://your-litellm-proxy:4000
+# ANTHROPIC_AUTH_TOKEN=sk-your-virtual-key
+#
+# For GPT models (optional):
 # OPENAI_API_KEY=your-openai-key-here
 ```
 
@@ -195,7 +198,8 @@ Environment variables (set in `.env`):
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key | (required for Claude models) |
+| `ANTHROPIC_BASE_URL` | LiteLLM proxy URL | (required for Claude models) |
+| `ANTHROPIC_AUTH_TOKEN` | LiteLLM virtual key | (required for Claude models) |
 | `OPENAI_API_KEY` | Your OpenAI API key | (required for GPT models) |
 | `DEFAULT_MODEL` | Default model to use | `claude-opus-4-5-20251101` |
 | `HOST` | Backend server host | `127.0.0.1` |
@@ -205,6 +209,18 @@ Environment variables (set in `.env`):
 | `RLM_ENVIRONMENT` | RLM environment type | `local` |
 | `RLM_SUBCALL_MODEL` | Model for sub-calls (optional) | (same as main) |
 | `RLM_SUBCALL_BACKEND` | Backend for sub-calls: `openai` or `anthropic` | (same as main) |
+
+### LiteLLM Proxy Configuration
+
+Claude models are accessed via LiteLLM proxy. Set both `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN`:
+
+```bash
+# LiteLLM proxy configuration (required for Claude models)
+ANTHROPIC_BASE_URL=http://your-litellm-proxy:4000
+ANTHROPIC_AUTH_TOKEN=sk-your-litellm-virtual-key
+```
+
+The LiteLLM proxy handles authentication and routing to the actual Anthropic API.
 
 ### Sub-call Model Configuration
 

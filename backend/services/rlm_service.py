@@ -156,8 +156,10 @@ class RLMService:
                 }
             else:
                 backend = "anthropic"
+                # Get Anthropic config (supports both direct and LiteLLM proxy modes)
+                anthropic_config = settings.get_anthropic_config()
                 backend_kwargs = {
-                    "api_key": settings.anthropic_api_key,
+                    **anthropic_config,  # api_key (+ base_url if proxy mode)
                     "model_name": session.model_id,
                     "max_tokens": 4096,
                 }
@@ -167,14 +169,16 @@ class RLMService:
             other_backend_kwargs = None
             if settings.rlm_subcall_model and settings.rlm_subcall_backend:
                 subcall_backend = settings.rlm_subcall_backend
-                subcall_api_key = (
-                    settings.openai_api_key if subcall_backend == "openai"
-                    else settings.anthropic_api_key
-                )
-                if subcall_api_key:
+                if subcall_backend == "openai":
+                    subcall_config = {"api_key": settings.openai_api_key}
+                else:
+                    # Use same Anthropic config (direct or proxy) for subcalls
+                    subcall_config = settings.get_anthropic_config()
+
+                if subcall_config.get("api_key"):
                     other_backends = [subcall_backend]
                     other_backend_kwargs = [{
-                        "api_key": subcall_api_key,
+                        **subcall_config,
                         "model_name": settings.rlm_subcall_model,
                         "max_tokens": 2048,
                     }]

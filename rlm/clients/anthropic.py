@@ -10,6 +10,10 @@ from rlm.core.types import ModelUsageSummary, UsageSummary
 class AnthropicClient(BaseLM):
     """
     LM Client for running models with the Anthropic API.
+
+    Supports both direct Anthropic API and LiteLLM proxy:
+    - Direct: api_key only
+    - LiteLLM proxy: api_key (virtual key) + base_url (proxy address)
     """
 
     def __init__(
@@ -17,11 +21,18 @@ class AnthropicClient(BaseLM):
         api_key: str,
         model_name: str | None = None,
         max_tokens: int = 32768,
+        base_url: str | None = None,
         **kwargs,
     ):
         super().__init__(model_name=model_name, **kwargs)
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.async_client = anthropic.AsyncAnthropic(api_key=api_key)
+
+        # Build client kwargs - support custom base_url for LiteLLM proxy
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+
+        self.client = anthropic.Anthropic(**client_kwargs)
+        self.async_client = anthropic.AsyncAnthropic(**client_kwargs)
         self.model_name = model_name
         self.max_tokens = max_tokens
 

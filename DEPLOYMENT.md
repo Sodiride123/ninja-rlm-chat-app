@@ -5,7 +5,7 @@ Deploy the RLM-Conversation web app on Linux in 5 minutes.
 ## Prerequisites
 
 - Python 3.11+ and Node.js 18+
-- Anthropic API key or OpenAI API key
+- LiteLLM proxy access (base URL + virtual key)
 
 ## Quick Start
 
@@ -14,9 +14,11 @@ Deploy the RLM-Conversation web app on Linux in 5 minutes.
 git clone <your-repo-url>
 cd RLM-Conversation
 
-# 2. Set up API keys
+# 2. Configure LiteLLM proxy
 cp .env.example .env
-nano .env  # Add your ANTHROPIC_API_KEY or OPENAI_API_KEY
+nano .env  # Add your LiteLLM proxy settings:
+           # ANTHROPIC_BASE_URL=http://your-litellm-proxy:4000
+           # ANTHROPIC_AUTH_TOKEN=sk-your-virtual-key
 
 # 3. Install backend
 cd backend

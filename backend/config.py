@@ -18,9 +18,14 @@ load_dotenv(env_path)
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # API Keys
+    # API Keys - Direct mode
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+
+    # LiteLLM Proxy mode (alternative to direct Anthropic)
+    # When set, routes Anthropic calls through LiteLLM proxy
+    anthropic_base_url: str | None = os.getenv("ANTHROPIC_BASE_URL", None)
+    anthropic_auth_token: str | None = os.getenv("ANTHROPIC_AUTH_TOKEN", None)
 
     # Server
     host: str = os.getenv("HOST", "127.0.0.1")
@@ -46,7 +51,23 @@ class Settings(BaseSettings):
         """Check if API key is configured for the given provider."""
         if provider == "openai":
             return bool(self.openai_api_key and self.openai_api_key != "your-api-key-here")
-        return bool(self.anthropic_api_key and self.anthropic_api_key != "your-api-key-here")
+        # Anthropic: either direct API key OR LiteLLM proxy (base_url + auth_token)
+        has_direct_key = bool(self.anthropic_api_key and self.anthropic_api_key != "your-api-key-here")
+        has_proxy_config = bool(self.anthropic_base_url and self.anthropic_auth_token)
+        return has_direct_key or has_proxy_config
+
+    def get_anthropic_config(self) -> dict:
+        """Get Anthropic client configuration (direct or proxy mode)."""
+        # Prefer LiteLLM proxy if configured
+        if self.anthropic_base_url and self.anthropic_auth_token:
+            return {
+                "api_key": self.anthropic_auth_token,  # Virtual key for proxy
+                "base_url": self.anthropic_base_url,
+            }
+        # Fall back to direct Anthropic API
+        return {
+            "api_key": self.anthropic_api_key,
+        }
 
     class Config:
         env_file = ".env"
