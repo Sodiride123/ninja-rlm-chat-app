@@ -76,19 +76,6 @@ class ChatSession:
             title += "..."
         return title
 
-    def to_dict(self) -> dict:
-        """Convert session to dict for API responses."""
-        return {
-            "session_id": self.session_id,
-            "model_id": self.model_id,
-            "document_ids": self.document_ids,
-            "title": self.title,
-            "status": self.status,
-            "created_at": self.created_at,
-            "ended_at": self.ended_at,
-            "message_count": len(self.messages),
-        }
-
     def add_progress_events(self, run_id: str, events: list[dict]):
         """Store progress events for a run."""
         self.progress_events[run_id] = events

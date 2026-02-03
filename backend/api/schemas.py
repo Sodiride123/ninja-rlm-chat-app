@@ -152,14 +152,6 @@ class CodeExecutionResultEvent(ProgressEventBase):
     subcall_count: int
 
 
-class SubcallStartEvent(ProgressEventBase):
-    """Emitted when a sub-LLM call begins."""
-    type: Literal["subcall_start"] = "subcall_start"
-    iteration: int
-    model: str
-    prompt_preview: str
-
-
 class SubcallCompleteEvent(ProgressEventBase):
     """Emitted when a sub-LLM call completes."""
     type: Literal["subcall_complete"] = "subcall_complete"

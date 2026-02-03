@@ -3,7 +3,7 @@ Models API routes.
 Lists available models for the chat interface.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from backend.api.schemas import ModelInfo, ModelsListResponse
 from backend.config import AVAILABLE_MODELS
@@ -39,5 +39,4 @@ async def get_model(model_id: str):
                 description=m["description"],
             )
 
-    from fastapi import HTTPException
     raise HTTPException(status_code=404, detail="Model not found")

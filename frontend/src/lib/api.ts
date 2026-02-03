@@ -156,10 +156,10 @@ export async function getRunProgress(sessionId: string, runId: string): Promise<
 
 // SSE Stream URL (for EventSource)
 // Connect directly to backend to avoid Next.js proxy buffering SSE responses
-//const SSE_BASE = typeof window !== 'undefined'
-  //? 'http://127.0.0.1:9124/api'  // Direct backend connection for SSE
-  //: '/api';
-const SSE_BASE = '/api';
+const SSE_BASE = typeof window !== 'undefined'
+  ? 'http://127.0.0.1:9124/api'  // Direct backend connection for SSE
+  : '/api';
+//const SSE_BASE = '/api';
 
 export function getStreamUrl(sessionId: string, runId: string): string {
   return `${SSE_BASE}/chat/${sessionId}/stream/${runId}`;

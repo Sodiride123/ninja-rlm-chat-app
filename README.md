@@ -1,6 +1,6 @@
 # RLM-Conversation
 
-Web-based AI chat application for ultra-long-context document understanding and QA, using [RLM (Recursive Language Models)](https://github.com/anthropics/rlm) as the core inference framework.
+Web-based AI chat application for ultra-long-context document understanding and QA, using [RLM (Recursive Language Models)](https://github.com/alexzhang13/rlm.git) as the core inference framework.
 
 ## Features
 

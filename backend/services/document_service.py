@@ -5,7 +5,6 @@ Supports PDF, TXT, DOCX, and MD files.
 
 import hashlib
 import os
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import BinaryIO

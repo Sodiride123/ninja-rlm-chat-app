@@ -24,9 +24,6 @@ export function ProgressPanel({
   const prevEventCount = useRef(0);
   const [newEventStartIndex, setNewEventStartIndex] = useState(-1);
 
-  // Track heartbeat activity
-  const [lastHeartbeat, setLastHeartbeat] = useState<number>(0);
-
   // Smart auto-scroll state
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
@@ -88,16 +85,8 @@ export function ProgressPanel({
   // Ensure events is always an array
   const safeEvents = events || [];
 
-  // Filter out heartbeat events but track them for activity indicator
+  // Filter out heartbeat events
   const visibleEvents = safeEvents.filter(e => (e.type as string) !== 'heartbeat');
-
-  // Check for heartbeats to update activity indicator
-  useEffect(() => {
-    const heartbeats = safeEvents.filter(e => (e.type as string) === 'heartbeat');
-    if (heartbeats.length > 0) {
-      setLastHeartbeat(Date.now());
-    }
-  }, [safeEvents]);
 
   // Update new event tracking when events change
   useEffect(() => {
@@ -139,9 +128,6 @@ export function ProgressPanel({
   };
 
   const status = getStatus();
-
-  // Check if we recently received a heartbeat (within last 5 seconds)
-  const isHeartbeatActive = isStreaming && (Date.now() - lastHeartbeat < 5000);
 
   // Filter to show only important events (avoid duplicates)
   const displayEvents = visibleEvents.filter((event, index) => {
@@ -399,7 +385,7 @@ export function ProgressPanel({
           <div className="space-y-2">
             <DetailRow label="Model" value={event.model} />
             <DetailRow label="Time" value={`${event.time_ms}ms`} />
-            {'response' in event && event.response && (
+            {'response' in event && typeof event.response === 'string' && event.response && (
               <div>
                 <span className="text-panel-text-secondary">Response:</span>
                 <pre className="mt-1.5 p-2.5 bg-black/30 rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
@@ -415,7 +401,9 @@ export function ProgressPanel({
           <div className="space-y-1.5">
             <DetailRow label="Input tokens" value={event.input_tokens.toLocaleString()} />
             <DetailRow label="Output tokens" value={event.output_tokens.toLocaleString()} />
-            <DetailRow label="Execution time" value={`${(event.execution_time_ms / 1000).toFixed(2)}s`} />
+            {event.execution_time_ms != null && (
+              <DetailRow label="Execution time" value={`${(event.execution_time_ms / 1000).toFixed(2)}s`} />
+            )}
             {'models_used' in event && (
               <DetailRow label="Models used" value={(event.models_used as string[]).join(', ')} />
             )}

@@ -151,14 +151,3 @@ export type ProgressEvent =
   | ErrorEvent
   | DoneEvent;
 
-// App State
-export interface AppState {
-  documents: DocumentInfo[];
-  models: ModelInfo[];
-  currentSession: SessionInfo | null;
-  messages: ChatMessage[];
-  isProcessing: boolean;
-  currentRunId: string | null;
-  progressEvents: ProgressEvent[];
-  error: string | null;
-}
