@@ -9,6 +9,19 @@ import type {
 
 const API_BASE = '/api';
 
+// Debug timing: Enable in browser console with `window.DEBUG_API_TIMING = true`
+declare global {
+  interface Window {
+    DEBUG_API_TIMING?: boolean;
+  }
+}
+
+function logTiming(label: string, startTime: number) {
+  if (typeof window !== 'undefined' && window.DEBUG_API_TIMING) {
+    console.log(`[API Timing] ${label}: ${Date.now() - startTime}ms`);
+  }
+}
+
 // Helper for fetch with error handling
 async function fetchAPI<T>(
   endpoint: string,
@@ -83,26 +96,37 @@ export async function createSession(
   modelId: string,
   documentIds: string[]
 ): Promise<SessionInfo> {
-  return fetchAPI<SessionInfo>('/sessions', {
+  const start = Date.now();
+  const result = await fetchAPI<SessionInfo>('/sessions', {
     method: 'POST',
     body: JSON.stringify({ model_id: modelId, document_ids: documentIds }),
   });
+  logTiming('createSession', start);
+  return result;
 }
 
 export async function getSessions(status?: 'active' | 'ended'): Promise<SessionInfo[]> {
+  const start = Date.now();
   const query = status ? `?status=${status}` : '';
-  return fetchAPI<SessionInfo[]>(`/sessions${query}`);
+  const result = await fetchAPI<SessionInfo[]>(`/sessions${query}`);
+  logTiming('getSessions', start);
+  return result;
 }
 
 export async function getSession(sessionId: string): Promise<{
   session: SessionInfo;
   messages: ChatMessage[];
 }> {
-  return fetchAPI(`/sessions/${sessionId}`);
+  const start = Date.now();
+  const result = await fetchAPI<{ session: SessionInfo; messages: ChatMessage[] }>(`/sessions/${sessionId}`);
+  logTiming('getSession', start);
+  return result;
 }
 
 export async function endSession(sessionId: string): Promise<void> {
+  const start = Date.now();
   await fetchAPI(`/sessions/${sessionId}/end`, { method: 'POST' });
+  logTiming('endSession', start);
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -148,9 +172,11 @@ export async function getChatHistory(sessionId: string): Promise<ChatMessage[]> 
 }
 
 export async function getRunProgress(sessionId: string, runId: string): Promise<Record<string, unknown>[]> {
+  const start = Date.now();
   const data = await fetchAPI<{ session_id: string; run_id: string; events: Record<string, unknown>[] }>(
     `/chat/${sessionId}/progress/${runId}`
   );
+  logTiming('getRunProgress', start);
   return data.events;
 }
 

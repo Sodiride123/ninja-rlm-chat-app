@@ -201,24 +201,49 @@ export default function Home() {
     );
   }, []);
 
+  // Helper: Refresh session list in background (non-blocking)
+  const refreshSessionListInBackground = useCallback(() => {
+    api.getSessions().then(setSessionHistory).catch(() => {
+      // Silently ignore background refresh errors
+    });
+  }, []);
+
   // Session handlers
   const handleCreateSession = useCallback(async () => {
+    // Optimistic UI: Show session active state immediately
+    const tempSessionId = `temp-${Date.now()}`;
+    const optimisticSession: SessionInfo = {
+      session_id: tempSessionId,
+      model_id: selectedModelId,
+      document_ids: selectedDocIds,
+      status: 'active',
+      message_count: 0,
+      created_at: new Date().toISOString(),
+      ended_at: null,
+      title: null,
+    };
+
+    // Update UI immediately (optimistic)
+    setCurrentSession(optimisticSession);
+    setMessages([]);
+    clearAllProgress();
+    setSelectedRunId(null);
+    setViewingEndedSession(false);
+    setAppError(null);
+
     try {
-      setAppError(null);
-      const session = await api.createSession(selectedModelId, selectedDocIds);
-      setCurrentSession(session);
-      setMessages([]);
-      clearAllProgress();
-      setSelectedRunId(null);
-      setViewingEndedSession(false);
-      // Refresh session list to include the new active session
-      const sessions = await api.getSessions();
-      setSessionHistory(sessions);
+      // Create session in background - update with real session when ready
+      const realSession = await api.createSession(selectedModelId, selectedDocIds);
+      setCurrentSession(realSession);
+      // Refresh session list in background (non-blocking)
+      refreshSessionListInBackground();
     } catch (error) {
+      // Rollback optimistic update on error
       console.error('Failed to create session:', error);
+      setCurrentSession(null);
       setAppError(error instanceof Error ? error.message : 'Failed to create session');
     }
-  }, [selectedDocIds, selectedModelId, clearAllProgress]);
+  }, [selectedDocIds, selectedModelId, clearAllProgress, refreshSessionListInBackground]);
 
   const handleEndSession = useCallback(async () => {
     if (!currentSession) return;
@@ -226,76 +251,75 @@ export default function Home() {
     // Stop any active streaming first
     stopStreaming();
 
-    // If viewing an ended session, just close it (don't call API)
-    if (currentSession.status === 'ended') {
-      setCurrentSession(null);
-      setMessages([]);
-      clearAllProgress();
-      setSelectedRunId(null);
-      setViewingEndedSession(false);
-      return;
-    }
+    const wasActiveSession = currentSession.status === 'active';
+    const sessionIdToEnd = currentSession.session_id;
 
-    // For active sessions, end them via API
-    try {
-      await api.endSession(currentSession.session_id);
-    } catch (error) {
-      console.error('Failed to end session:', error);
-    }
-
-    // Refresh session history to show the ended session
-    try {
-      const sessions = await api.getSessions();
-      setSessionHistory(sessions);
-    } catch {
-      // Ignore refresh error
-    }
-
+    // Optimistic UI: Clear session immediately (don't wait for API)
     setCurrentSession(null);
     setMessages([]);
     clearAllProgress();
     setSelectedRunId(null);
     setIsProcessing(false);
     setViewingEndedSession(false);
-  }, [currentSession, clearAllProgress, stopStreaming]);
+
+    // If it was an ended session, we're just closing the view - no API call needed
+    if (!wasActiveSession) {
+      return;
+    }
+
+    // For active sessions, end them via API in background (non-blocking)
+    api.endSession(sessionIdToEnd)
+      .then(() => {
+        // Refresh session list in background after successful end
+        refreshSessionListInBackground();
+      })
+      .catch((error) => {
+        console.error('Failed to end session:', error);
+        // Session is already cleared from UI, so just refresh the list
+        refreshSessionListInBackground();
+      });
+  }, [currentSession, clearAllProgress, stopStreaming, refreshSessionListInBackground]);
 
   // View a session (active or ended)
   const handleViewSession = useCallback(async (sessionId: string) => {
     try {
       setAppError(null);
+
+      // Load core session data first (required for UI)
       const { session, messages: sessionMessages } = await api.getSession(sessionId);
+
+      // Update UI immediately with session data
       setCurrentSession(session);
       setMessages(sessionMessages);
-      // Only mark as read-only if session is ended
       setViewingEndedSession(session.status === 'ended');
       setIsProcessing(false);
       clearAllProgress();
 
-      // Auto-select the last assistant message's run_id and load its progress
+      // Auto-select the last assistant message's run_id
       const lastAssistantMsg = [...sessionMessages].reverse().find(m => m.role === 'assistant' && m.run_id);
       if (lastAssistantMsg?.run_id) {
         setSelectedRunId(lastAssistantMsg.run_id);
-        // Load progress for this run
-        try {
-          const events = await api.getRunProgress(sessionId, lastAssistantMsg.run_id);
-          if (events.length > 0) {
-            loadHistoricalProgress(lastAssistantMsg.run_id, events as unknown as import('@/lib/types').ProgressEvent[]);
-          }
-        } catch {
-          // Ignore progress load errors
-        }
+        // Load progress in background (non-blocking) - UI is already shown
+        api.getRunProgress(sessionId, lastAssistantMsg.run_id)
+          .then((events) => {
+            if (events.length > 0) {
+              loadHistoricalProgress(lastAssistantMsg.run_id!, events as unknown as import('@/lib/types').ProgressEvent[]);
+            }
+          })
+          .catch(() => {
+            // Ignore progress load errors
+          });
       } else {
         setSelectedRunId(null);
       }
 
-      // Refresh session list to update message counts
-      const sessions = await api.getSessions();
-      setSessionHistory(sessions);
+      // Refresh session list in background (non-blocking)
+      refreshSessionListInBackground();
     } catch (error) {
       console.error('Failed to load session:', error);
       setAppError(error instanceof Error ? error.message : 'Failed to load session');
     }
-  }, [clearAllProgress, loadHistoricalProgress]);
+  }, [clearAllProgress, loadHistoricalProgress, refreshSessionListInBackground]);
 
   // Permanently delete a session from history
   const handleDeleteSession = useCallback(async (sessionId: string) => {
