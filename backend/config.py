@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     port: int = int(os.getenv("PORT", "8000"))
 
     # Model defaults
-    default_model: str = os.getenv("DEFAULT_MODEL", "claude-sonnet-4-5-20250929")
+    default_model: str = os.getenv("DEFAULT_MODEL", "claude-opus-4-5-20251101")
 
     # RLM settings - reduced iterations for faster responses
     rlm_max_iterations: int = int(os.getenv("RLM_MAX_ITERATIONS", "15"))

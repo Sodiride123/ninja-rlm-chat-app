@@ -61,6 +61,7 @@ export default function Home() {
     allProgress,
     getRunProgress,
     startStreaming,
+    stopStreaming,
     clearAllProgress,
     loadHistoricalProgress,
   } = useProgress({
@@ -158,8 +159,8 @@ export default function Home() {
         setDocuments(docsData);
         setSessionHistory(sessionsData);
         if (modelsData.length > 0 && !selectedModelId) {
-          // Default to Sonnet (second model) if available
-          const defaultModel = modelsData.find(m => m.id.includes('sonnet')) || modelsData[0];
+          // Default to Opus if available
+          const defaultModel = modelsData.find(m => m.id.includes('opus')) || modelsData[0];
           setSelectedModelId(defaultModel.id);
         }
       } catch (error) {
@@ -222,6 +223,9 @@ export default function Home() {
   const handleEndSession = useCallback(async () => {
     if (!currentSession) return;
 
+    // Stop any active streaming first
+    stopStreaming();
+
     // If viewing an ended session, just close it (don't call API)
     if (currentSession.status === 'ended') {
       setCurrentSession(null);
@@ -253,7 +257,7 @@ export default function Home() {
     setSelectedRunId(null);
     setIsProcessing(false);
     setViewingEndedSession(false);
-  }, [currentSession, clearAllProgress]);
+  }, [currentSession, clearAllProgress, stopStreaming]);
 
   // View a session (active or ended)
   const handleViewSession = useCallback(async (sessionId: string) => {

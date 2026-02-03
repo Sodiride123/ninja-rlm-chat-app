@@ -314,13 +314,11 @@ export function DocumentPanel({
               </div>
               <button
                 onClick={onEndSession}
-                disabled={isProcessing}
                 className="w-full px-4 py-2.5 text-sm font-medium text-red-600
                            bg-surface-secondary rounded-lg hover:bg-red-50
-                           disabled:opacity-50 disabled:cursor-not-allowed
                            transition-all duration-200"
               >
-                End Session
+                {isProcessing ? 'Cancel & End Session' : 'End Session'}
               </button>
             </div>
           )
