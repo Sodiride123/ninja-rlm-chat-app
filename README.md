@@ -8,7 +8,7 @@ Web-based AI chat application for ultra-long-context document understanding and 
 - **Multi-turn Conversations**: Uses RLM's native persistent mode to maintain conversation context across turns, with versioned context storage (context_0, context_1, etc.)
 - **Real-time Progress**: SSE-based progress panel with incremental updates - events are emitted as each step completes (LLM response, code execution, sub-calls), not batched at iteration boundaries
 - **Model Selection**: Support for multiple providers - Claude (Sonnet 4.5, Opus 4.5) and OpenAI (GPT-5.2, GPT-5 Mini)
-- **Session Management**: Create, manage, and delete chat sessions with seamless switching between active sessions. Empty sessions are automatically discarded.
+- **Session Management**: Create, manage, and delete chat sessions with seamless switching between active sessions. Cancel running queries at any time. Empty sessions are automatically discarded.
 - **Session History**: Persisted chat history with progress events - view past sessions, click messages to see RLM execution steps. Active sessions are preserved when browsing history and can be resumed.
 - **ChatGPT-style Composer**: Floating pill-shaped input with auto-growing multi-line textarea (Enter to send, Shift+Enter for newline)
 - **Polished Chat UI**: Clean message bubbles with neutral colors, smooth reveal animations for assistant responses, and balanced centered layout
@@ -94,7 +94,7 @@ Navigate to http://127.0.0.1:3001 in your browser.
 ## Usage
 
 1. **Upload Documents**: Click "+ Upload" to upload PDF, TXT, MD, or DOCX files
-2. **Select Model**: Choose between Claude Sonnet 4.5 (faster) or Claude Opus 4.5 (more capable)
+2. **Select Model**: Choose between Claude Opus 4.5 (default, more capable) or Claude Sonnet 4.5 (faster)
 3. **Start Session**: Click "Start Session" to begin a chat with selected documents
 4. **Ask Questions**: Type your question and watch the RLM progress panel show real-time analysis
 5. **Follow-up Questions**: Continue the conversation - the context is preserved
@@ -197,7 +197,7 @@ Environment variables (set in `.env`):
 |----------|-------------|---------|
 | `ANTHROPIC_API_KEY` | Your Anthropic API key | (required for Claude models) |
 | `OPENAI_API_KEY` | Your OpenAI API key | (required for GPT models) |
-| `DEFAULT_MODEL` | Default model to use | `claude-sonnet-4-5-20250929` |
+| `DEFAULT_MODEL` | Default model to use | `claude-opus-4-5-20251101` |
 | `HOST` | Backend server host | `127.0.0.1` |
 | `PORT` | Backend server port | `9124` |
 | `RLM_MAX_ITERATIONS` | Max RLM iterations per query | `15` |
