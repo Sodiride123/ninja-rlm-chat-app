@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { ProgressEvent } from '@/lib/types';
 
 interface ProgressPanelProps {
@@ -85,8 +85,11 @@ export function ProgressPanel({
   // Ensure events is always an array
   const safeEvents = events || [];
 
-  // Filter out heartbeat events
-  const visibleEvents = safeEvents.filter(e => (e.type as string) !== 'heartbeat');
+  // Memoize: Filter out heartbeat events
+  const visibleEvents = useMemo(
+    () => safeEvents.filter(e => (e.type as string) !== 'heartbeat'),
+    [safeEvents]
+  );
 
   // Update new event tracking when events change
   useEffect(() => {
@@ -114,63 +117,78 @@ export function ProgressPanel({
     }
   }, [visibleEvents.length]);
 
-  // Check if we have a final answer
-  const hasFinalAnswer = visibleEvents.some(e => e.type === 'final_answer');
-  const hasError = visibleEvents.some(e => e.type === 'error') || error;
+  // Memoize: Single-pass status computation (instead of multiple .some()/.find() calls)
+  const { hasFinalAnswer, finalAnswerEvent, status } = useMemo(() => {
+    let finalAnswer: ProgressEvent | null = null;
+    let foundError = false;
 
-  // Get status
-  const getStatus = () => {
-    if (hasError) return 'error';
-    if (hasFinalAnswer) return 'complete';
-    if (isStreaming) return 'live';
-    if (visibleEvents.length > 0) return 'idle';
-    return 'empty';
-  };
-
-  const status = getStatus();
-
-  // Filter to show only important events (avoid duplicates)
-  const displayEvents = visibleEvents.filter((event, index) => {
-    // Skip duplicate session_start events
-    if (event.type === 'session_start' && index > 0) {
-      const prevSameType = visibleEvents.slice(0, index).filter(e => e.type === 'session_start');
-      if (prevSameType.length > 0) return false;
+    for (const event of visibleEvents) {
+      if (event.type === 'final_answer' && !finalAnswer) {
+        finalAnswer = event;
+      }
+      if (event.type === 'error') {
+        foundError = true;
+      }
     }
-    // Skip 'done' event (redundant with final_answer)
-    if (event.type === 'done') return false;
-    return true;
-  });
 
-  // Get animation class for an event based on its index
-  const getAnimationClass = (displayIndex: number) => {
-    if (newEventStartIndex < 0) return '';
+    const hasFinal = finalAnswer !== null;
+    const hasErr = foundError || !!error;
 
-    // Find the original index of this display event in visibleEvents
-    // Since displayEvents filters some events, we need to map back
-    let visibleIndex = 0;
-    let displayCount = 0;
-    for (let i = 0; i < visibleEvents.length; i++) {
-      const event = visibleEvents[i];
-      // Check if this event passes the filter
-      if (event.type === 'session_start' && i > 0) {
-        const prevSameType = visibleEvents.slice(0, i).filter(e => e.type === 'session_start');
-        if (prevSameType.length > 0) continue;
+    let computedStatus: 'error' | 'complete' | 'live' | 'idle' | 'empty';
+    if (hasErr) computedStatus = 'error';
+    else if (hasFinal) computedStatus = 'complete';
+    else if (isStreaming) computedStatus = 'live';
+    else if (visibleEvents.length > 0) computedStatus = 'idle';
+    else computedStatus = 'empty';
+
+    return {
+      hasFinalAnswer: hasFinal,
+      finalAnswerEvent: finalAnswer as (ProgressEvent & { type: 'final_answer'; total_iterations: number; total_time_ms: number }) | null,
+      status: computedStatus,
+    };
+  }, [visibleEvents, error, isStreaming]);
+
+  // Memoize: Filter to show only important events - O(n) single-pass
+  const displayEvents = useMemo(() => {
+    let hasSeenSessionStart = false;
+    const result: ProgressEvent[] = [];
+    for (const event of visibleEvents) {
+      if (event.type === 'session_start') {
+        if (hasSeenSessionStart) continue;
+        hasSeenSessionStart = true;
       }
       if (event.type === 'done') continue;
-
-      if (displayCount === displayIndex) {
-        visibleIndex = i;
-        break;
-      }
-      displayCount++;
+      result.push(event);
     }
+    return result;
+  }, [visibleEvents]);
 
+  // Pre-compute mapping from displayEvent index to visibleEvent index (O(n) once)
+  const displayToVisibleIndexMap = useMemo(() => {
+    const map: number[] = [];
+    let hasSeenSessionStart = false;
+    for (let i = 0; i < visibleEvents.length; i++) {
+      const event = visibleEvents[i];
+      if (event.type === 'session_start') {
+        if (hasSeenSessionStart) continue;
+        hasSeenSessionStart = true;
+      }
+      if (event.type === 'done') continue;
+      map.push(i);
+    }
+    return map;
+  }, [visibleEvents]);
+
+  // Get animation class - now O(1) lookup instead of O(n²)
+  const getAnimationClass = useCallback((displayIndex: number) => {
+    if (newEventStartIndex < 0) return '';
+    const visibleIndex = displayToVisibleIndexMap[displayIndex] ?? 0;
     if (visibleIndex >= newEventStartIndex) {
       const staggerIndex = Math.min(visibleIndex - newEventStartIndex + 1, 5);
       return `animate-slide-in animate-stagger-${staggerIndex}`;
     }
     return '';
-  };
+  }, [newEventStartIndex, displayToVisibleIndexMap]);
 
   // Format timestamp
   const formatTime = (timestamp: string) => {
@@ -483,13 +501,11 @@ export function ProgressPanel({
         )}
 
         {/* Completion Summary */}
-        {hasFinalAnswer && (
+        {finalAnswerEvent && (
           <div className="mt-2 text-xs text-panel-text-secondary">
-            {visibleEvents.find(e => e.type === 'final_answer') && (
-              <span>
-                Completed in {(visibleEvents.find(e => e.type === 'final_answer') as any).total_iterations} iteration{((visibleEvents.find(e => e.type === 'final_answer') as any).total_iterations !== 1) ? 's' : ''} ({((visibleEvents.find(e => e.type === 'final_answer') as any).total_time_ms / 1000).toFixed(1)}s)
-              </span>
-            )}
+            <span>
+              Completed in {finalAnswerEvent.total_iterations} iteration{finalAnswerEvent.total_iterations !== 1 ? 's' : ''} ({(finalAnswerEvent.total_time_ms / 1000).toFixed(1)}s)
+            </span>
           </div>
         )}
       </div>
