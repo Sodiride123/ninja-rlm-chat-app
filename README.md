@@ -227,10 +227,16 @@ The LiteLLM proxy handles authentication and routing to the actual Anthropic API
 By default, RLM uses the same model for both main queries and sub-calls (`llm_query` within code execution). To use a different (typically faster/cheaper) model for sub-calls, set these environment variables:
 
 ```bash
-# Example: Use GPT-5-nano for faster sub-calls
+# Option 1: Use faster Claude model via LiteLLM (same proxy)
+RLM_SUBCALL_MODEL=claude-sonnet-4-5-20250514
+RLM_SUBCALL_BACKEND=anthropic
+
+# Option 2: Use OpenAI directly (requires OPENAI_API_KEY)
 RLM_SUBCALL_MODEL=gpt-5-nano-2025-08-07
 RLM_SUBCALL_BACKEND=openai
 ```
+
+When `RLM_SUBCALL_BACKEND=anthropic`, sub-calls use the same LiteLLM proxy (`ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`) as the main model.
 
 This can significantly speed up queries that make many sub-calls, as smaller models respond faster. Both variables must be set to enable sub-call routing.
 
