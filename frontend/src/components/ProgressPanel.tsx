@@ -195,73 +195,73 @@ export function ProgressPanel({
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  // Get icon for event type - clean SVG icons
+  // Get icon for event type - clean SVG icons (colors for light theme)
   const getEventIcon = (type: string) => {
     const iconClass = "w-4 h-4";
     switch (type) {
       case 'session_start':
         return (
-          <svg className={`${iconClass} text-blue-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-blue-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         );
       case 'thinking':
         return (
-          <svg className={`${iconClass} text-purple-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-purple-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
         );
       case 'iteration_start':
         return (
-          <svg className={`${iconClass} text-cyan-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-cyan-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         );
       case 'llm_response':
         return (
-          <svg className={`${iconClass} text-amber-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-amber-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         );
       case 'code_start':
         return (
-          <svg className={`${iconClass} text-emerald-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-emerald-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
         );
       case 'code_result':
         return (
-          <svg className={`${iconClass} text-green-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-green-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       case 'subcall_complete':
         return (
-          <svg className={`${iconClass} text-indigo-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-indigo-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </svg>
         );
       case 'final_answer':
         return (
-          <svg className={`${iconClass} text-green-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-green-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
           </svg>
         );
       case 'usage_summary':
         return (
-          <svg className={`${iconClass} text-slate-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-slate-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
         );
       case 'error':
         return (
-          <svg className={`${iconClass} text-red-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-red-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       case 'done':
         return (
-          <svg className={`${iconClass} text-blue-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`${iconClass} text-blue-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
           </svg>
         );
@@ -356,7 +356,7 @@ export function ProgressPanel({
             <DetailRow label="Time" value={`${event.time_ms}ms`} />
             <div>
               <span className="text-panel-text-secondary">Full response:</span>
-              <pre className="mt-1.5 p-2.5 bg-black/30 rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-64 overflow-y-auto leading-relaxed">
+              <pre className="mt-1.5 p-2.5 bg-surface-tertiary rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-64 overflow-y-auto leading-relaxed">
                 {event.response}
               </pre>
             </div>
@@ -367,7 +367,7 @@ export function ProgressPanel({
         return (
           <div>
             <span className="text-panel-text-secondary">Code:</span>
-            <pre className="mt-1.5 p-2.5 bg-black/30 rounded-md text-emerald-400 text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto font-mono leading-relaxed">
+            <pre className="mt-1.5 p-2.5 bg-emerald-50 rounded-md text-emerald-700 text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto font-mono leading-relaxed">
               {event.code}
             </pre>
           </div>
@@ -379,7 +379,7 @@ export function ProgressPanel({
             {event.stdout && (
               <div>
                 <span className="text-panel-text-secondary">Output:</span>
-                <pre className="mt-1.5 p-2.5 bg-black/30 rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
+                <pre className="mt-1.5 p-2.5 bg-surface-tertiary rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
                   {event.stdout}
                 </pre>
               </div>
@@ -387,7 +387,7 @@ export function ProgressPanel({
             {event.stderr && (
               <div>
                 <span className="text-red-400">Stderr:</span>
-                <pre className="mt-1.5 p-2.5 bg-red-950/30 rounded-md text-red-300 text-xs whitespace-pre-wrap overflow-x-auto max-h-32 overflow-y-auto leading-relaxed">
+                <pre className="mt-1.5 p-2.5 bg-red-50 rounded-md text-red-700 text-xs whitespace-pre-wrap overflow-x-auto max-h-32 overflow-y-auto leading-relaxed">
                   {event.stderr}
                 </pre>
               </div>
@@ -406,7 +406,7 @@ export function ProgressPanel({
             {'response' in event && typeof event.response === 'string' && event.response && (
               <div>
                 <span className="text-panel-text-secondary">Response:</span>
-                <pre className="mt-1.5 p-2.5 bg-black/30 rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
+                <pre className="mt-1.5 p-2.5 bg-surface-tertiary rounded-md text-panel-text text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto leading-relaxed">
                   {event.response}
                 </pre>
               </div>
@@ -436,7 +436,7 @@ export function ProgressPanel({
             {'traceback' in event && event.traceback && (
               <div>
                 <span className="text-panel-text-secondary">Traceback:</span>
-                <pre className="mt-1.5 p-2.5 bg-red-950/30 rounded-md text-red-300 text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto font-mono leading-relaxed">
+                <pre className="mt-1.5 p-2.5 bg-red-50 rounded-md text-red-700 text-xs whitespace-pre-wrap overflow-x-auto max-h-48 overflow-y-auto font-mono leading-relaxed">
                   {event.traceback}
                 </pre>
               </div>
@@ -458,16 +458,16 @@ export function ProgressPanel({
 
           {/* Status Indicator */}
           {status === 'live' && (
-            <span className="flex items-center gap-2 text-xs text-green-400 font-medium">
+            <span className="flex items-center gap-2 text-xs text-green-600 font-medium">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40 animate-gentle-pulse"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-40 animate-gentle-pulse"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </span>
               Live
             </span>
           )}
           {status === 'complete' && (
-            <span className="flex items-center gap-1.5 text-xs text-blue-400 font-medium">
+            <span className="flex items-center gap-1.5 text-xs text-blue-600 font-medium">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -475,7 +475,7 @@ export function ProgressPanel({
             </span>
           )}
           {status === 'error' && (
-            <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">
+            <span className="flex items-center gap-1.5 text-xs text-red-600 font-medium">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
               </svg>
@@ -514,7 +514,7 @@ export function ProgressPanel({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-3 dark-scrollbar relative"
+        className="flex-1 overflow-y-auto p-3 relative"
       >
         {displayEvents.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -535,9 +535,9 @@ export function ProgressPanel({
                   key={index}
                   className={`rounded-lg text-xs transition-all duration-200 ${
                     event.type === 'error'
-                      ? 'bg-red-950/50 ring-1 ring-red-500/20'
+                      ? 'bg-red-50 ring-1 ring-red-200'
                       : event.type === 'final_answer'
-                      ? 'bg-green-950/50 ring-1 ring-green-500/20'
+                      ? 'bg-green-50 ring-1 ring-green-200'
                       : 'bg-panel-surface hover:bg-panel-surface-hover'
                   } ${isExpandable ? 'cursor-pointer' : ''} ${animationClass}`}
                 >
@@ -604,8 +604,8 @@ export function ProgressPanel({
 
       {/* Error Display */}
       {error && (
-        <div className="p-3 border-t border-red-500/20 bg-red-950/50">
-          <p className="text-xs text-red-300">
+        <div className="p-3 border-t border-red-200 bg-red-50">
+          <p className="text-xs text-red-700">
             <span className="font-medium">Error:</span> {error}
           </p>
         </div>

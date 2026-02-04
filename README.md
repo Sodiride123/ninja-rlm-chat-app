@@ -6,12 +6,12 @@ Web-based AI chat application for ultra-long-context document understanding and 
 
 - **Document Upload**: Support for PDF, TXT, MD, and DOCX files
 - **Multi-turn Conversations**: Uses RLM's native persistent mode to maintain conversation context across turns, with versioned context storage (context_0, context_1, etc.)
-- **Real-time Progress**: SSE-based progress panel with incremental updates - events are emitted as each step completes (LLM response, code execution, sub-calls), not batched at iteration boundaries
+- **Real-time Progress**: Resizable progress panel with SSE-based incremental updates - events are emitted as each step completes (LLM response, code execution, sub-calls)
 - **Model Selection**: Support for multiple providers - Claude (Sonnet 4.5, Opus 4.5) and OpenAI (GPT-5.2, GPT-5 Mini)
-- **Session Management**: Create, manage, and delete chat sessions with seamless switching between active sessions. Cancel running queries at any time. Empty sessions are automatically discarded.
-- **Session History**: Persisted chat history with progress events - view past sessions, click messages to see RLM execution steps. Active sessions are preserved when browsing history and can be resumed.
-- **ChatGPT-style Composer**: Floating pill-shaped input with auto-growing multi-line textarea (Enter to send, Shift+Enter for newline)
-- **Polished Chat UI**: Clean message bubbles with neutral colors, smooth reveal animations for assistant responses, and balanced centered layout
+- **Session Management**: Create, manage, and delete chat sessions with seamless switching between active sessions. Running sessions show a purple indicator dot. Cancel running queries at any time.
+- **Session History**: Persisted chat history with progress events - view past sessions, click messages to see RLM thinking process. Active sessions are preserved when browsing history and can be resumed.
+- **ChatPDF-inspired UI**: Clean three-panel layout with resizable sidebar and progress panel, centered chat bubbles, and purple accent theming
+- **ChatGPT-style Composer**: Floating pill-shaped input with model selector, auto-growing textarea (Enter to send, Shift+Enter for newline)
 
 ## Quick Start
 
@@ -96,11 +96,13 @@ Navigate to http://127.0.0.1:3001 in your browser.
 
 ## Usage
 
-1. **Upload Documents**: Click "+ Upload" to upload PDF, TXT, MD, or DOCX files
-2. **Select Model**: Choose between Claude Opus 4.5 (default, more capable) or Claude Sonnet 4.5 (faster)
-3. **Start Session**: Click "Start Session" to begin a chat with selected documents
-4. **Ask Questions**: Type your question and watch the RLM progress panel show real-time analysis
-5. **Follow-up Questions**: Continue the conversation - the context is preserved
+1. **Upload Documents**: Drag & drop or click to upload PDF, TXT, MD, or DOCX files
+2. **Select Documents**: Check one or more documents in the sidebar to include in your chat
+3. **Start Chat**: Click "Start Chat" in the center to begin a session with selected documents
+4. **Select Model**: Choose your model in the composer area (Claude Opus 4.5 default, or Sonnet 4.5 for faster responses)
+5. **Ask Questions**: Type your question and watch the RLM progress panel show real-time thinking process
+6. **Follow-up Questions**: Continue the conversation - context is preserved across turns
+7. **End Chat**: Click the purple "End Chat" button in the sidebar when done
 
 ## Architecture
 
@@ -136,11 +138,14 @@ RLM-Conversation/
 │   │   ├── app/
 │   │   │   ├── page.tsx       # Main application page
 │   │   │   ├── layout.tsx     # Root layout
-│   │   │   └── globals.css    # Global styles
+│   │   │   └── globals.css    # Global styles & animations
 │   │   ├── components/
+│   │   │   ├── Header.tsx     # Top navigation bar
+│   │   │   ├── Sidebar.tsx    # Left panel (chats & documents)
 │   │   │   ├── ChatPanel.tsx  # Chat messages UI
-│   │   │   ├── DocumentPanel.tsx # Document & session controls
-│   │   │   └── ProgressPanel.tsx # RLM progress visualization
+│   │   │   ├── ProgressPanel.tsx # RLM progress visualization
+│   │   │   ├── LandingPage.tsx   # Welcome/upload screen
+│   │   │   └── ResizeHandle.tsx  # Draggable panel resizer
 │   │   ├── hooks/
 │   │   │   └── useProgress.ts # SSE streaming hook
 │   │   └── lib/

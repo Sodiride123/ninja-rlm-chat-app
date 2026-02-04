@@ -1,21 +1,31 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocumentPanel } from '@/components/DocumentPanel';
+import { Header } from '@/components/Header';
+import { Sidebar } from '@/components/Sidebar';
 import { ChatPanel } from '@/components/ChatPanel';
 import { ProgressPanel } from '@/components/ProgressPanel';
+import { LandingPage } from '@/components/LandingPage';
 import { ResizeHandle } from '@/components/ResizeHandle';
 import { useProgress } from '@/hooks/useProgress';
 import * as api from '@/lib/api';
 import type { DocumentInfo, ModelInfo, SessionInfo, ChatMessage } from '@/lib/types';
 
-// Panel width constraints
-const MIN_LEFT_WIDTH = 200;
-const MAX_LEFT_WIDTH = 500;
-const MIN_RIGHT_WIDTH = 200;
-const MAX_RIGHT_WIDTH = 600;
-const DEFAULT_LEFT_WIDTH = 288; // 72 * 4 = 288px (w-72)
-const DEFAULT_RIGHT_WIDTH = 320; // 80 * 4 = 320px (w-80)
+// Sidebar width constraints
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 500;
+const DEFAULT_SIDEBAR_WIDTH = 390;
+
+// Progress panel width constraints
+const MIN_PROGRESS_WIDTH = 280;
+const MAX_PROGRESS_WIDTH = 600;
+const DEFAULT_PROGRESS_WIDTH = 384; // w-96 = 24rem = 384px
+
+// Track active run state to preserve across session switches
+interface ActiveRunState {
+  sessionId: string;
+  runId: string;
+}
 
 export default function Home() {
   // Data state
@@ -35,22 +45,34 @@ export default function Home() {
   // Selected message's run_id for progress viewing
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
-  // Panel widths (resizable)
-  const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_WIDTH);
-  const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_WIDTH);
+  // Progress panel state - only show after first message
+  const [progressPanelExpanded, setProgressPanelExpanded] = useState(true);
+  const hasMessages = messages.length > 0;
 
-  // Resize handlers
-  const handleLeftResize = useCallback((delta: number) => {
-    setLeftPanelWidth((prev) => {
+  // Session state cache - preserves messages when switching between sessions
+  const [sessionMessagesCache, setSessionMessagesCache] = useState<Map<string, ChatMessage[]>>(new Map());
+
+  // Track active run to preserve processing state across session switches
+  const [activeRun, setActiveRun] = useState<ActiveRunState | null>(null);
+
+
+  // Sidebar resize state
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+
+  const handleSidebarResize = useCallback((delta: number) => {
+    setSidebarWidth((prev) => {
       const newWidth = prev + delta;
-      return Math.min(MAX_LEFT_WIDTH, Math.max(MIN_LEFT_WIDTH, newWidth));
+      return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, newWidth));
     });
   }, []);
 
-  const handleRightResize = useCallback((delta: number) => {
-    setRightPanelWidth((prev) => {
+  // Progress panel resize state
+  const [progressWidth, setProgressWidth] = useState(DEFAULT_PROGRESS_WIDTH);
+
+  const handleProgressResize = useCallback((delta: number) => {
+    setProgressWidth((prev) => {
       const newWidth = prev + delta;
-      return Math.min(MAX_RIGHT_WIDTH, Math.max(MIN_RIGHT_WIDTH, newWidth));
+      return Math.min(MAX_PROGRESS_WIDTH, Math.max(MIN_PROGRESS_WIDTH, newWidth));
     });
   }, []);
 
@@ -73,8 +95,20 @@ export default function Home() {
         timestamp: new Date().toISOString(),
         run_id: runId,
       };
-      setMessages((prev) => [...prev, newMessage]);
+      setMessages((prev) => {
+        const updated = [...prev, newMessage];
+        // Also update the cache for this session
+        if (activeRun?.sessionId) {
+          setSessionMessagesCache((cache) => {
+            const newCache = new Map(cache);
+            newCache.set(activeRun.sessionId, updated);
+            return newCache;
+          });
+        }
+        return updated;
+      });
       setIsProcessing(false);
+      setActiveRun(null); // Clear active run when complete
       // Auto-select the new message's progress
       setSelectedRunId(runId);
     },
@@ -93,6 +127,7 @@ export default function Home() {
             });
             setMessages(updatedHistory);
             setIsProcessing(false);
+            setActiveRun(null);
             if (currentRunId) {
               setSelectedRunId(currentRunId);
             }
@@ -104,9 +139,11 @@ export default function Home() {
       }
       setAppError(error);
       setIsProcessing(false);
+      setActiveRun(null);
     },
     onComplete: () => {
       setIsProcessing(false);
+      setActiveRun(null);
     },
   });
 
@@ -175,7 +212,36 @@ export default function Home() {
   const handleUpload = useCallback(async (files: FileList) => {
     try {
       setAppError(null);
-      const result = await api.uploadDocuments(files);
+
+      // Check for duplicate filenames
+      const existingFilenames = documents.map(d => d.filename.toLowerCase());
+      const duplicates: string[] = [];
+      const filesToUpload: File[] = [];
+
+      Array.from(files).forEach((file) => {
+        if (existingFilenames.includes(file.name.toLowerCase())) {
+          duplicates.push(file.name);
+        } else {
+          filesToUpload.push(file);
+        }
+      });
+
+      if (duplicates.length > 0) {
+        setAppError(`Document${duplicates.length > 1 ? 's' : ''} with this name already exist${duplicates.length > 1 ? '' : 's'}: ${duplicates.join(', ')}`);
+        if (filesToUpload.length === 0) {
+          return;
+        }
+      }
+
+      if (filesToUpload.length === 0) {
+        return;
+      }
+
+      // Create a new FileList-like object from filtered files
+      const dataTransfer = new DataTransfer();
+      filesToUpload.forEach(file => dataTransfer.items.add(file));
+
+      const result = await api.uploadDocuments(dataTransfer.files);
       setDocuments((prev) => [...prev, ...result.documents]);
       // Auto-select newly uploaded documents
       setSelectedDocIds((prev) => [...prev, ...result.documents.map((d) => d.id)]);
@@ -183,7 +249,7 @@ export default function Home() {
       console.error('Upload failed:', error);
       setAppError(error instanceof Error ? error.message : 'Upload failed');
     }
-  }, []);
+  }, [documents]);
 
   const handleDeleteDocument = useCallback(async (docId: string) => {
     try {
@@ -254,6 +320,18 @@ export default function Home() {
     const wasActiveSession = currentSession.status === 'active';
     const sessionIdToEnd = currentSession.session_id;
 
+    // Clear active run if this session had one
+    if (activeRun?.sessionId === sessionIdToEnd) {
+      setActiveRun(null);
+    }
+
+    // Remove from cache
+    setSessionMessagesCache((cache) => {
+      const newCache = new Map(cache);
+      newCache.delete(sessionIdToEnd);
+      return newCache;
+    });
+
     // Optimistic UI: Clear session immediately (don't wait for API)
     setCurrentSession(null);
     setMessages([]);
@@ -278,12 +356,42 @@ export default function Home() {
         // Session is already cleared from UI, so just refresh the list
         refreshSessionListInBackground();
       });
-  }, [currentSession, clearAllProgress, stopStreaming, refreshSessionListInBackground]);
+  }, [currentSession, activeRun, clearAllProgress, stopStreaming, refreshSessionListInBackground]);
 
   // View a session (active or ended)
   const handleViewSession = useCallback(async (sessionId: string) => {
     try {
       setAppError(null);
+
+      // Cache current session's messages before switching (if we have a current session)
+      if (currentSession && messages.length > 0) {
+        setSessionMessagesCache((cache) => {
+          const newCache = new Map(cache);
+          newCache.set(currentSession.session_id, messages);
+          return newCache;
+        });
+      }
+
+      // Check if we're returning to a session with an active run
+      const isReturningToActiveRun = activeRun?.sessionId === sessionId;
+
+      if (isReturningToActiveRun) {
+        // Restore from cache - the run is still processing
+        const cachedMessages = sessionMessagesCache.get(sessionId);
+        if (cachedMessages) {
+          // Restore cached messages
+          setMessages(cachedMessages);
+          // Restore the session (fetch fresh to get latest status)
+          const { session } = await api.getSession(sessionId);
+          setCurrentSession(session);
+          setViewingEndedSession(false);
+          setIsProcessing(true); // Re-enable processing indicator
+          setSelectedRunId(activeRun.runId); // Re-select the active run
+          // Progress is already in allProgress from the stream, no need to reload
+          refreshSessionListInBackground();
+          return;
+        }
+      }
 
       // Load core session data first (required for UI)
       const { session, messages: sessionMessages } = await api.getSession(sessionId);
@@ -292,23 +400,32 @@ export default function Home() {
       setCurrentSession(session);
       setMessages(sessionMessages);
       setViewingEndedSession(session.status === 'ended');
-      setIsProcessing(false);
-      clearAllProgress();
+
+      // Only set isProcessing to false if this session doesn't have an active run
+      if (!isReturningToActiveRun) {
+        setIsProcessing(false);
+      }
+
+      // Don't clear all progress - just load this session's progress
+      // This preserves the streaming progress for the active run
 
       // Auto-select the last assistant message's run_id
       const lastAssistantMsg = [...sessionMessages].reverse().find(m => m.role === 'assistant' && m.run_id);
       if (lastAssistantMsg?.run_id) {
         setSelectedRunId(lastAssistantMsg.run_id);
         // Load progress in background (non-blocking) - UI is already shown
-        api.getRunProgress(sessionId, lastAssistantMsg.run_id)
-          .then((events) => {
-            if (events.length > 0) {
-              loadHistoricalProgress(lastAssistantMsg.run_id!, events as unknown as import('@/lib/types').ProgressEvent[]);
-            }
-          })
-          .catch(() => {
-            // Ignore progress load errors
-          });
+        // Only load if we don't already have it (streaming run progress is already stored)
+        if (!getRunProgress(lastAssistantMsg.run_id)) {
+          api.getRunProgress(sessionId, lastAssistantMsg.run_id)
+            .then((events) => {
+              if (events.length > 0) {
+                loadHistoricalProgress(lastAssistantMsg.run_id!, events as unknown as import('@/lib/types').ProgressEvent[]);
+              }
+            })
+            .catch(() => {
+              // Ignore progress load errors
+            });
+        }
       } else {
         setSelectedRunId(null);
       }
@@ -319,13 +436,27 @@ export default function Home() {
       console.error('Failed to load session:', error);
       setAppError(error instanceof Error ? error.message : 'Failed to load session');
     }
-  }, [clearAllProgress, loadHistoricalProgress, refreshSessionListInBackground]);
+  }, [currentSession, messages, activeRun, sessionMessagesCache, getRunProgress, loadHistoricalProgress, refreshSessionListInBackground]);
 
   // Permanently delete a session from history
   const handleDeleteSession = useCallback(async (sessionId: string) => {
     try {
       await api.deleteSession(sessionId);
       setSessionHistory((prev) => prev.filter((s) => s.session_id !== sessionId));
+
+      // Clear from cache
+      setSessionMessagesCache((cache) => {
+        const newCache = new Map(cache);
+        newCache.delete(sessionId);
+        return newCache;
+      });
+
+      // Clear active run if this session had one
+      if (activeRun?.sessionId === sessionId) {
+        setActiveRun(null);
+        stopStreaming();
+      }
+
       // If we're viewing the deleted session, clear it
       if (currentSession?.session_id === sessionId) {
         setCurrentSession(null);
@@ -335,7 +466,7 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to delete session:', error);
     }
-  }, [currentSession]);
+  }, [currentSession, activeRun, stopStreaming]);
 
   // Chat handler
   const handleSendMessage = useCallback(async (message: string) => {
@@ -351,10 +482,22 @@ export default function Home() {
         content: message,
         timestamp: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages((prev) => {
+        const updated = [...prev, userMessage];
+        // Cache the messages for this session
+        setSessionMessagesCache((cache) => {
+          const newCache = new Map(cache);
+          newCache.set(currentSession.session_id, updated);
+          return newCache;
+        });
+        return updated;
+      });
 
       // Submit message and start streaming
       const { run_id } = await api.submitMessage(currentSession.session_id, message);
+
+      // Track the active run for state preservation
+      setActiveRun({ sessionId: currentSession.session_id, runId: run_id });
 
       // Auto-select the new run for viewing
       setSelectedRunId(run_id);
@@ -364,6 +507,7 @@ export default function Home() {
       console.error('Failed to send message:', error);
       setAppError(error instanceof Error ? error.message : 'Failed to send message');
       setIsProcessing(false);
+      setActiveRun(null);
     }
   }, [currentSession, isProcessing, startStreaming]);
 
@@ -384,8 +528,36 @@ export default function Home() {
     }
   }, [currentSession, getRunProgress, loadHistoricalProgress]);
 
+  // Handle new chat from header
+  const handleNewChat = useCallback(() => {
+    if (currentSession) {
+      handleEndSession();
+    }
+  }, [currentSession, handleEndSession]);
+
+  // Toggle progress panel
+  const toggleProgressPanel = useCallback(() => {
+    setProgressPanelExpanded((prev) => !prev);
+  }, []);
+
+
+  // Auto-expand progress panel when streaming starts (only if we have messages)
+  useEffect(() => {
+    if (isStreaming && hasMessages) {
+      setProgressPanelExpanded(true);
+    }
+  }, [isStreaming, hasMessages]);
+
   return (
     <div className="h-screen flex flex-col bg-surface-secondary">
+      {/* Header */}
+      <Header
+        onNewChat={handleNewChat}
+        sessionTitle={currentSession?.title}
+        hasActiveSession={!!currentSession}
+        logoSrc="/logo.png"
+      />
+
       {/* Error Banner */}
       {appError && (
         <div className="bg-red-50 border-b border-red-100 px-4 py-2.5 flex items-center justify-between">
@@ -401,64 +573,92 @@ export default function Home() {
         </div>
       )}
 
-      {/* Main Layout */}
+      {/* Main Layout - Two Column */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Documents & Controls */}
+        {/* Left Sidebar */}
         <div
           className="flex-shrink-0 h-full"
-          style={{ width: leftPanelWidth }}
+          style={{ width: sidebarWidth }}
         >
-          <DocumentPanel
+          <Sidebar
             documents={documents}
-            models={models}
             selectedDocIds={selectedDocIds}
-            selectedModelId={selectedModelId}
             currentSession={currentSession}
             sessionHistory={sessionHistory}
             isProcessing={isProcessing}
+            runningSessionId={activeRun?.sessionId || null}
             onUpload={handleUpload}
             onDeleteDocument={handleDeleteDocument}
             onSelectDocument={handleSelectDocument}
-            onSelectModel={setSelectedModelId}
-            onCreateSession={handleCreateSession}
             onEndSession={handleEndSession}
             onViewSession={handleViewSession}
             onDeleteSession={handleDeleteSession}
           />
         </div>
 
-        {/* Left Resize Handle */}
-        <ResizeHandle onResize={handleLeftResize} direction="left" />
+        {/* Sidebar Resize Handle */}
+        <ResizeHandle onResize={handleSidebarResize} direction="left" />
 
-        {/* Center - Chat */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <ChatPanel
-            messages={messages}
-            isProcessing={isProcessing}
-            hasSession={!!currentSession}
-            isReadOnly={viewingEndedSession}
-            selectedRunId={selectedRunId}
-            onSendMessage={handleSendMessage}
-            onSelectMessage={handleSelectMessage}
-          />
+        {/* Main Content - Chat or Landing Page */}
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          {currentSession ? (
+            <>
+              <ChatPanel
+                messages={messages}
+                isProcessing={isProcessing}
+                hasSession={!!currentSession}
+                isReadOnly={viewingEndedSession}
+                selectedRunId={selectedRunId}
+                onSendMessage={handleSendMessage}
+                onSelectMessage={handleSelectMessage}
+                onToggleProgress={toggleProgressPanel}
+                showProgressButton={hasMessages}
+                progressPanelExpanded={progressPanelExpanded && hasMessages}
+                models={models}
+                selectedModelId={selectedModelId}
+                onSelectModel={setSelectedModelId}
+              />
+            </>
+          ) : (
+            <LandingPage
+              onUpload={handleUpload}
+              hasDocuments={documents.length > 0}
+              selectedDocCount={selectedDocIds.length}
+              onStartSession={handleCreateSession}
+            />
+          )}
         </div>
 
-        {/* Right Resize Handle */}
-        <ResizeHandle onResize={handleRightResize} direction="right" />
+        {/* Right Panel - Progress (only after first message) */}
+        {currentSession && hasMessages && progressPanelExpanded && (
+          <>
+            {/* Progress Panel Resize Handle */}
+            <ResizeHandle onResize={handleProgressResize} direction="right" />
 
-        {/* Right Panel - Progress */}
-        <div
-          className="flex-shrink-0 h-full"
-          style={{ width: rightPanelWidth }}
-        >
-          <ProgressPanel
-            events={displayProgress?.events || []}
-            isStreaming={isStreaming && displayRunId === currentRunId}
-            currentIteration={displayProgress?.currentIteration || 0}
-            maxIterations={displayProgress?.maxIterations || 30}
-            error={displayProgress?.error || null}
-          />
-        </div>
+            <div
+              className="flex-shrink-0 h-full bg-panel-bg border-l border-panel-border relative"
+              style={{ width: progressWidth }}
+            >
+              {/* Collapse button */}
+              <button
+                onClick={toggleProgressPanel}
+                className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-panel-surface hover:bg-panel-surface-hover text-panel-text-secondary hover:text-panel-text transition-colors"
+                title="Collapse progress panel"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              </button>
+              <ProgressPanel
+                events={displayProgress?.events || []}
+                isStreaming={isStreaming && displayRunId === currentRunId}
+                currentIteration={displayProgress?.currentIteration || 0}
+                maxIterations={displayProgress?.maxIterations || 30}
+                error={displayProgress?.error || null}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

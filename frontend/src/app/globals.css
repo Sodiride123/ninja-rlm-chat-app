@@ -174,3 +174,19 @@
 .reveal-paragraph:nth-child(8) { animation-delay: 700ms; }
 .reveal-paragraph:nth-child(9) { animation-delay: 800ms; }
 .reveal-paragraph:nth-child(10) { animation-delay: 900ms; }
+
+/* Purple lightning pulse glow for thinking state */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(124, 58, 237, 0.3);
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, ModelInfo } from '@/lib/types';
 
 // Component to render text with paragraph-by-paragraph reveal animation
 function RevealText({ content, animate }: { content: string; animate: boolean }) {
@@ -48,6 +48,12 @@ interface ChatPanelProps {
   selectedRunId: string | null;
   onSendMessage: (message: string) => void;
   onSelectMessage: (runId: string | null) => void;
+  onToggleProgress?: () => void;
+  showProgressButton?: boolean;
+  progressPanelExpanded?: boolean;
+  models?: ModelInfo[];
+  selectedModelId?: string;
+  onSelectModel?: (modelId: string) => void;
 }
 
 export function ChatPanel({
@@ -58,6 +64,12 @@ export function ChatPanel({
   selectedRunId,
   onSendMessage,
   onSelectMessage,
+  onToggleProgress,
+  showProgressButton = false,
+  progressPanelExpanded = false,
+  models = [],
+  selectedModelId = '',
+  onSelectModel,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -172,12 +184,31 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-full bg-surface-primary relative">
+      {/* Progress toggle button - only show when panel is collapsed */}
+      {showProgressButton && onToggleProgress && !progressPanelExpanded && (
+        <button
+          onClick={onToggleProgress}
+          className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-lg
+                     bg-panel-bg hover:bg-panel-surface
+                     text-panel-text text-sm font-medium
+                     transition-colors shadow-chatpdf border border-panel-border"
+          title="Expand progress panel"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+          Progress
+        </button>
+      )}
+
       {/* Messages */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-6 space-y-5"
+        className="flex-1 overflow-y-auto px-6 py-6"
       >
+        {/* Centered container for Gemini-like spacing - narrower for more side margins */}
+        <div className="max-w-2xl mx-auto space-y-5">
         {!hasSession ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center max-w-sm">
@@ -202,9 +233,42 @@ export function ChatPanel({
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-sm">
-              <p className="text-sm font-medium text-text-secondary">Ready to chat</p>
-              <p className="text-sm text-text-tertiary mt-1">Ask a question about your documents</p>
+            <div className="text-center max-w-md">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent-subtle flex items-center justify-center">
+                <svg className="w-8 h-8 text-accent-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-text-primary mb-2">Ready to chat</h2>
+              <p className="text-sm text-text-secondary">
+                Ask any question about your documents
+              </p>
+              {/* Suggested questions */}
+              <div className="mt-6 space-y-2">
+                <p className="text-xs text-text-tertiary uppercase tracking-wider mb-3">Try asking</p>
+                <button
+                  onClick={() => {
+                    if (!isProcessing) {
+                      onSendMessage('What is this document about?');
+                    }
+                  }}
+                  disabled={isProcessing}
+                  className="w-full px-4 py-3 text-left text-sm text-text-primary bg-surface-secondary hover:bg-surface-tertiary rounded-xl border border-border transition-colors disabled:opacity-50"
+                >
+                  What is this document about?
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isProcessing) {
+                      onSendMessage('Summarize the key points');
+                    }
+                  }}
+                  disabled={isProcessing}
+                  className="w-full px-4 py-3 text-left text-sm text-text-primary bg-surface-secondary hover:bg-surface-tertiary rounded-xl border border-border transition-colors disabled:opacity-50"
+                >
+                  Summarize the key points
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -214,6 +278,7 @@ export function ChatPanel({
             const isSelected = hasProgress && selectedRunId === message.run_id;
             const isNewMessage = index >= seenMessageCount;
             const shouldAnimate = isAssistant && isNewMessage && !isReadOnly;
+            const isLastAssistantMessage = isAssistant && index === messages.length - 1;
 
             return (
               <div
@@ -222,45 +287,73 @@ export function ChatPanel({
                   shouldAnimate ? 'animate-message-reveal' : ''
                 }`}
               >
-                <div
-                  onClick={() => handleMessageClick(message)}
-                  className={`max-w-[65%] rounded-2xl px-4 py-3 transition-all duration-200 ${
-                    message.role === 'user'
-                      ? 'bg-surface-user mr-[10%]'
-                      : isSelected
-                      ? 'bg-accent-subtle ring-1 ring-accent-primary/30 ml-[10%]'
-                      : 'ml-[10%]'
-                  } ${hasProgress ? 'cursor-pointer hover:bg-accent-subtle/50' : ''}`}
-                >
-                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-text-primary">
-                    {isAssistant ? (
-                      <RevealText content={message.content} animate={shouldAnimate} />
-                    ) : (
-                      message.content
-                    )}
-                  </p>
-                  {hasProgress && (
-                    <div className="flex items-center justify-end mt-2">
-                      <span
-                        className={`text-xs flex items-center gap-1.5 transition-colors ${
-                          isSelected ? 'text-accent-primary' : 'text-text-tertiary'
-                        }`}
-                      >
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M9 5l7 7-7 7"
-                          />
+                <div className={`max-w-[75%] ${message.role === 'user' ? '' : ''}`}>
+                  {/* Assistant avatar */}
+                  {isAssistant && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-accent-primary flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        {isSelected ? 'Viewing' : 'View progress'}
-                      </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div
+                    onClick={() => handleMessageClick(message)}
+                    className={`rounded-2xl px-4 py-3 transition-all duration-200 ${
+                      message.role === 'user'
+                        ? 'bg-accent-primary text-white ml-auto'
+                        : isSelected
+                        ? 'bg-accent-subtle border border-accent-primary/20'
+                        : 'bg-surface-secondary border border-border'
+                    } ${hasProgress ? 'cursor-pointer hover:border-accent-primary/40' : ''}`}
+                  >
+                    <div className={`text-[15px] leading-relaxed whitespace-pre-wrap ${
+                      message.role === 'user' ? 'text-white' : 'text-text-primary'
+                    }`}>
+                      {isAssistant ? (
+                        <RevealText content={message.content} animate={shouldAnimate} />
+                      ) : (
+                        message.content
+                      )}
+                    </div>
+                    {hasProgress && (
+                      <div className="flex items-center justify-end mt-2 pt-2 border-t border-border/50">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMessageClick(message);
+                            if (onToggleProgress) onToggleProgress();
+                          }}
+                          className={`text-xs flex items-center gap-1.5 transition-colors ${
+                            isSelected ? 'text-accent-primary' : 'text-text-tertiary hover:text-accent-primary'
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          {isSelected ? 'Viewing thinking process' : 'Click to view thinking process'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Suggested actions after last assistant message */}
+                  {isLastAssistantMessage && !isProcessing && !isReadOnly && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => onSendMessage('Tell me more about this')}
+                        className="px-3 py-1.5 text-xs font-medium text-accent-primary bg-accent-subtle hover:bg-accent-subtle-hover rounded-full transition-colors"
+                      >
+                        Tell me more
+                      </button>
+                      <button
+                        onClick={() => onSendMessage('Can you explain this in simpler terms?')}
+                        className="px-3 py-1.5 text-xs font-medium text-accent-primary bg-accent-subtle hover:bg-accent-subtle-hover rounded-full transition-colors"
+                      >
+                        Simplify
+                      </button>
                     </div>
                   )}
                 </div>
@@ -272,13 +365,16 @@ export function ChatPanel({
         {/* Processing indicator */}
         {isProcessing && (
           <div className="flex justify-start">
-            <div className="bg-surface-tertiary rounded-2xl px-4 py-3 ml-[10%]">
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div>
+              {/* Avatar with animated lightning */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-full bg-accent-primary flex items-center justify-center animate-pulse-glow">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
                 </div>
+              </div>
+              <div className="bg-surface-secondary border border-border rounded-2xl px-4 py-3">
                 <span className="text-sm text-text-secondary">Analyzing...</span>
               </div>
             </div>
@@ -286,6 +382,7 @@ export function ChatPanel({
         )}
 
         <div ref={messagesEndRef} />
+        </div>{/* End centered container */}
       </div>
 
       {/* Jump to latest button */}
@@ -309,7 +406,7 @@ export function ChatPanel({
       {/* Floating Composer Input */}
       <div className="p-4 pb-6 bg-gradient-to-t from-surface-primary via-surface-primary to-transparent">
         {isReadOnly ? (
-          <div className="max-w-3xl mx-auto text-center py-3 px-4 bg-amber-50 rounded-2xl border border-amber-200">
+          <div className="max-w-2xl mx-auto text-center py-3 px-4 bg-amber-50 rounded-2xl border border-amber-200">
             <p className="text-sm text-amber-700">
               Viewing ended session (read-only)
             </p>
@@ -318,13 +415,30 @@ export function ChatPanel({
           <>
             <form
               onSubmit={handleSubmit}
-              className="relative flex items-end gap-3 max-w-3xl mx-auto
-                         bg-surface-secondary/80 backdrop-blur-sm
-                         rounded-3xl border border-border/50
-                         shadow-lg shadow-black/5
+              className="relative flex items-end gap-2 max-w-2xl mx-auto
+                         bg-white
+                         rounded-2xl border border-border
+                         shadow-chatpdf
                          transition-all duration-200
-                         focus-within:border-border focus-within:shadow-xl focus-within:shadow-black/10"
+                         focus-within:border-accent-primary/50 focus-within:shadow-chatpdf-md"
             >
+              {/* Model Selector (Gemini-style) */}
+              {models.length > 0 && onSelectModel && (
+                <div className="flex items-center pl-3 pb-2">
+                  <select
+                    value={selectedModelId}
+                    onChange={(e) => onSelectModel(e.target.value)}
+                    disabled={isProcessing}
+                    className="text-xs bg-surface-secondary border border-border rounded-lg px-2 py-1.5 text-text-secondary focus:outline-none focus:ring-1 focus:ring-accent-primary/30 focus:border-accent-primary disabled:opacity-50 transition-all cursor-pointer hover:bg-surface-tertiary"
+                  >
+                    {models.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -332,46 +446,57 @@ export function ChatPanel({
                 onKeyDown={handleKeyDown}
                 placeholder={
                   hasSession
-                    ? 'Ask a question about your documents...'
+                    ? 'Ask any question...'
                     : 'Start a session first'
                 }
                 disabled={!hasSession || isProcessing}
                 rows={1}
-                className="flex-1 px-5 py-4 bg-transparent resize-none
+                className="flex-1 px-4 py-3.5 bg-transparent resize-none
                            text-text-primary text-[15px] leading-relaxed
                            focus:outline-none
                            disabled:cursor-not-allowed disabled:text-text-tertiary
                            placeholder:text-text-tertiary"
-                style={{ minHeight: '52px' }}
+                style={{ minHeight: '48px' }}
               />
-              <button
-                type="submit"
-                disabled={!input.trim() || !hasSession || isProcessing}
-                className="flex-shrink-0 m-2 p-2.5 rounded-full
-                           bg-accent-primary text-white
-                           hover:bg-accent-primary-hover
-                           disabled:bg-surface-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed
-                           transition-all duration-200"
-                aria-label="Send message"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex items-center gap-1 pr-2 pb-2">
+                <button
+                  type="submit"
+                  disabled={!input.trim() || !hasSession || isProcessing}
+                  className="p-2 rounded-xl
+                             bg-accent-primary text-white
+                             hover:bg-accent-primary-hover
+                             disabled:bg-surface-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed
+                             transition-all duration-200"
+                  aria-label="Send message"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19V5m0 0l-7 7m7-7l7 7"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 19V5m0 0l-7 7m7-7l7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
             </form>
-            <p className="text-center text-xs text-text-tertiary mt-3">
-              Press Enter to send, Shift+Enter for new line
-            </p>
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <span className="text-xs text-text-tertiary">
+                <kbd className="px-1.5 py-0.5 bg-surface-secondary rounded text-[10px] border border-border">Enter</kbd>
+                {' '}to send
+              </span>
+              <span className="text-xs text-text-tertiary">
+                <kbd className="px-1.5 py-0.5 bg-surface-secondary rounded text-[10px] border border-border">Shift</kbd>
+                {' + '}
+                <kbd className="px-1.5 py-0.5 bg-surface-secondary rounded text-[10px] border border-border">Enter</kbd>
+                {' '}for new line
+              </span>
+            </div>
           </>
         )}
       </div>

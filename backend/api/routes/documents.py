@@ -105,6 +105,21 @@ async def get_document(doc_id: str):
     )
 
 
+@router.get("/{doc_id}/content")
+async def get_document_content(doc_id: str):
+    """Get the extracted text content of a document."""
+    doc = document_service.get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    return {
+        "id": doc["id"],
+        "filename": doc["filename"],
+        "content": doc["text_content"],
+        "char_count": doc["char_count"],
+    }
+
+
 @router.delete("/{doc_id}")
 async def delete_document(doc_id: str):
     """Delete a document by ID."""
