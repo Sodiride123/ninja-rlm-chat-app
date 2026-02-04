@@ -454,7 +454,7 @@ export function ProgressPanel({
       {/* Header with Status */}
       <div className="px-4 py-3 border-b border-panel-border bg-panel-surface">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-panel-text">RLM Progress</h3>
+          <h3 className="text-sm font-medium text-panel-text">RLM Thinking Process</h3>
 
           {/* Status Indicator */}
           {status === 'live' && (

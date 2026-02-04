@@ -47,29 +47,22 @@ export function LandingPage({
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-primary">
       <div className="max-w-2xl w-full text-center">
         {/* Hero Text */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-text-primary mb-3">
-            <span className="text-accent-primary">AI-powered</span> document analysis
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-text-primary">
+            <span className="text-accent-primary">Best Ninja AI tool</span> for analyzing your Ultra-Long documents
           </h1>
-          <p className="text-lg text-text-secondary">
-            Upload documents and ask questions using advanced reasoning
-          </p>
         </div>
 
-        {/* Feature Tabs (simplified - just showing Chat is active) */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex bg-surface-secondary rounded-full p-1">
-            <button className="px-4 py-2 rounded-full bg-accent-primary text-white text-sm font-medium">
-              Chat
-            </button>
-            <button className="px-4 py-2 rounded-full text-text-secondary text-sm font-medium hover:text-text-primary transition-colors">
-              Summary
-            </button>
-          </div>
-        </div>
+        {/* Upload Area with gradient glow */}
+        <div className="mb-8 relative">
+          {/* Gradient glow background - soft purple halo */}
+          <div
+            className="absolute -inset-8 rounded-[32px] opacity-60 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at center, rgba(167, 139, 250, 0.3) 0%, rgba(196, 181, 253, 0.2) 40%, rgba(245, 243, 255, 0.1) 70%, transparent 100%)',
+            }}
+          />
 
-        {/* Upload Area */}
-        <div className="mb-8">
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -78,7 +71,7 @@ export function LandingPage({
               relative border-2 border-dashed rounded-2xl p-12 transition-all duration-200
               ${isDragging
                 ? 'border-accent-primary bg-accent-subtle'
-                : 'border-border hover:border-accent-muted hover:bg-surface-secondary'
+                : 'border-purple-200 bg-purple-50/30 hover:border-accent-muted hover:bg-purple-50/50'
               }
             `}
           >

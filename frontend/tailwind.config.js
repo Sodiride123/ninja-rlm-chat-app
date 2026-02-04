@@ -25,6 +25,14 @@ module.exports = {
           secondary: '#6b7280',
           tertiary: '#9ca3af',
         },
+        // Warm sidebar text colors (slightly yellow-tinted, premium feel)
+        sidebar: {
+          text: '#3d3929',           // warm dark brown-gray for primary text
+          'text-muted': '#6b6356',   // warm medium for secondary text
+          'text-tertiary': '#9a9488', // warm light for hints
+          hover: '#f0ebe3',          // warm cream hover background
+          'hover-strong': '#e8e2d8', // slightly stronger hover
+        },
         // ChatPDF-style violet accent colors
         accent: {
           primary: '#7c3aed',        // violet-600

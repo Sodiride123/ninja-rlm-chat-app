@@ -207,8 +207,8 @@ export function ChatPanel({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-6 py-6"
       >
-        {/* Centered container for Gemini-like spacing - narrower for more side margins */}
-        <div className="max-w-2xl mx-auto space-y-5">
+        {/* Centered container - wider for more spacious bubbles */}
+        <div className="max-w-4xl mx-auto space-y-5">
         {!hasSession ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center max-w-sm">
@@ -287,7 +287,7 @@ export function ChatPanel({
                   shouldAnimate ? 'animate-message-reveal' : ''
                 }`}
               >
-                <div className={`max-w-[75%] ${message.role === 'user' ? '' : ''}`}>
+                <div className={`${message.role === 'user' ? 'max-w-[85%]' : 'w-full'}`}>
                   {/* Assistant avatar */}
                   {isAssistant && (
                     <div className="flex items-center gap-2 mb-2">
@@ -362,21 +362,13 @@ export function ChatPanel({
           })
         )}
 
-        {/* Processing indicator */}
+        {/* Processing indicator - icon only */}
         {isProcessing && (
           <div className="flex justify-start">
-            <div>
-              {/* Avatar with animated lightning */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-full bg-accent-primary flex items-center justify-center animate-pulse-glow">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="bg-surface-secondary border border-border rounded-2xl px-4 py-3">
-                <span className="text-sm text-text-secondary">Analyzing...</span>
-              </div>
+            <div className="w-8 h-8 rounded-full bg-accent-primary flex items-center justify-center animate-pulse-glow">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
           </div>
         )}

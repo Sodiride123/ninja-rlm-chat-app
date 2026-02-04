@@ -528,12 +528,26 @@ export default function Home() {
     }
   }, [currentSession, getRunProgress, loadHistoricalProgress]);
 
-  // Handle new chat from header
+  // Navigate to landing page to start a new chat (without ending current session)
   const handleNewChat = useCallback(() => {
-    if (currentSession) {
-      handleEndSession();
+    // Cache current session's messages before leaving (if we have a current session with messages)
+    if (currentSession && messages.length > 0) {
+      setSessionMessagesCache((cache) => {
+        const newCache = new Map(cache);
+        newCache.set(currentSession.session_id, messages);
+        return newCache;
+      });
     }
-  }, [currentSession, handleEndSession]);
+
+    // Clear current view to show landing page
+    setCurrentSession(null);
+    setMessages([]);
+    clearAllProgress();
+    setSelectedRunId(null);
+    setViewingEndedSession(false);
+    setAppError(null);
+    // Note: We don't stop streaming or clear activeRun - the run continues in background
+  }, [currentSession, messages, clearAllProgress]);
 
   // Toggle progress panel
   const toggleProgressPanel = useCallback(() => {
@@ -552,7 +566,6 @@ export default function Home() {
     <div className="h-screen flex flex-col bg-surface-secondary">
       {/* Header */}
       <Header
-        onNewChat={handleNewChat}
         sessionTitle={currentSession?.title}
         hasActiveSession={!!currentSession}
         logoSrc="/logo.png"
@@ -593,6 +606,7 @@ export default function Home() {
             onEndSession={handleEndSession}
             onViewSession={handleViewSession}
             onDeleteSession={handleDeleteSession}
+            onNewChat={handleNewChat}
           />
         </div>
 
