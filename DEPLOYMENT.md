@@ -2,6 +2,28 @@
 
 Deploy the RLM-Conversation web app on Linux in 5 minutes.
 
+## LiteLLM Proxy Settings
+
+Before deploying, obtain the LiteLLM proxy credentials from `/root/.claude/settings.json`:
+
+```json
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "<your-token>",
+    "ANTHROPIC_BASE_URL": "<your-base-url>",
+    ...
+  },
+  ...
+}
+```
+
+Extract and set as environment variables:
+
+```bash
+export ANTHROPIC_AUTH_TOKEN=$(jq -r '.env.ANTHROPIC_AUTH_TOKEN' /root/.claude/settings.json)
+export ANTHROPIC_BASE_URL=$(jq -r '.env.ANTHROPIC_BASE_URL' /root/.claude/settings.json)
+```
+
 ## Prerequisites
 
 - Python 3.11+ and Node.js 18+

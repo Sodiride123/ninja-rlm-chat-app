@@ -249,13 +249,13 @@ export function ChatPanel({
                 <button
                   onClick={() => {
                     if (!isProcessing) {
-                      onSendMessage('What is this document about?');
+                      onSendMessage('What are these document(s) about?');
                     }
                   }}
                   disabled={isProcessing}
                   className="w-full px-4 py-3 text-left text-sm text-text-primary bg-surface-secondary hover:bg-surface-tertiary rounded-xl border border-border transition-colors disabled:opacity-50"
                 >
-                  What is this document about?
+                  What are these document(s) about?
                 </button>
                 <button
                   onClick={() => {
