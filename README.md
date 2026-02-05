@@ -88,7 +88,7 @@ PYTHONPATH=$(pwd) uvicorn backend.main:app --host 127.0.0.1 --port 9124
 **Terminal 2 - Frontend (port 3001):**
 ```bash
 cd RLM-Conversation/frontend
-npm run dev -- -p 3001
+npm run dev
 ```
 
 ### 5. Open the App
@@ -304,7 +304,7 @@ lsof -ti :9124 | xargs kill -9  # Kill backend
 
 ```bash
 cd RLM-Conversation/frontend
-npm run dev -- -p 3001
+npm run dev
 ```
 
 ### Restart Backend

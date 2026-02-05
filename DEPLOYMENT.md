@@ -62,7 +62,7 @@ PYTHONPATH=$(pwd) uvicorn backend.main:app --host 0.0.0.0 --port 9124
 
 # Terminal 2:
 cd frontend
-npm run dev -- -p 3001 -- --host 0.0.0.0
+npm run dev -- -H 0.0.0.0
 ```
 
 Open `http://localhost:3001` in your browser. Done!
@@ -76,7 +76,7 @@ Use `screen` to keep the app running:
 screen -dmS rlm-backend bash -c 'cd ~/RLM-Conversation && source backend/.venv/bin/activate && PYTHONPATH=$(pwd) uvicorn backend.main:app --host 0.0.0.0 --port 9124'
 
 # Start frontend
-screen -dmS rlm-frontend bash -c 'cd ~/RLM-Conversation/frontend && npm run dev -- -p 3001 -- --host 0.0.0.0'
+screen -dmS rlm-frontend bash -c 'cd ~/RLM-Conversation/frontend && npm run dev -- -H 0.0.0.0'
 
 # View running sessions
 screen -ls
