@@ -4,17 +4,23 @@ interface HeaderProps {
   sessionTitle?: string | null;
   hasActiveSession: boolean;
   logoSrc?: string;
+  onNavigateHome?: () => void;
 }
 
 export function Header({
   sessionTitle,
   hasActiveSession,
   logoSrc,
+  onNavigateHome,
 }: HeaderProps) {
   return (
     <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 flex-shrink-0">
-      {/* Left: Logo */}
-      <div className="flex items-center gap-2">
+      {/* Left: Logo - clickable to navigate home */}
+      <button
+        onClick={onNavigateHome}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+        title="Go to home"
+      >
         {logoSrc ? (
           <img src={logoSrc} alt="Logo" className="w-8 h-8 rounded-lg object-contain" />
         ) : (
@@ -24,8 +30,8 @@ export function Header({
             </svg>
           </div>
         )}
-        <span className="font-semibold text-text-primary">Ninja RLM Chat</span>
-      </div>
+        <span className="font-semibold text-text-primary">Ninja Documents</span>
+      </button>
 
       {/* Center: Session title (if active) */}
       <div className="flex-1 flex justify-center">

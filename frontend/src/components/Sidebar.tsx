@@ -13,6 +13,7 @@ interface SidebarProps {
   onUpload: (files: FileList) => void;
   onDeleteDocument: (docId: string) => void;
   onSelectDocument: (docId: string, selected: boolean) => void;
+  onStopThinking: () => void; // Stop current turn only, keep session alive
   onEndSession: () => void;
   onViewSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
@@ -29,6 +30,7 @@ export function Sidebar({
   onUpload,
   onDeleteDocument,
   onSelectDocument,
+  onStopThinking,
   onEndSession,
   onViewSession,
   onDeleteSession,
@@ -308,17 +310,33 @@ export function Sidebar({
             </p>
           </div>
         ) : (
-          /* End Chat button with purple background */
-          <button
-            onClick={onEndSession}
-            disabled={isProcessing}
-            className="w-full py-2.5 px-4 bg-accent-primary hover:bg-accent-primary-hover text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            End Chat
-          </button>
+          /* Two-step flow: Stop Thinking (when processing) → End Chat (when idle) */
+          <div className="space-y-2">
+            {isProcessing ? (
+              /* Stop Thinking button - stops current turn only, keeps session alive */
+              <button
+                onClick={onStopThinking}
+                className="w-full py-2.5 px-4 bg-accent-primary hover:bg-accent-primary-hover text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+                Stop Thinking
+              </button>
+            ) : (
+              /* End Chat button - ends the session */
+              <button
+                onClick={onEndSession}
+                className="w-full py-2.5 px-4 bg-accent-primary hover:bg-accent-primary-hover text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                End Chat
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

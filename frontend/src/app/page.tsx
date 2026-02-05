@@ -147,8 +147,11 @@ export default function Home() {
     },
   });
 
-  // Get the progress to display - either selected or current streaming
-  const displayRunId = selectedRunId || currentRunId;
+  // Get the progress to display - priority logic:
+  // 1. If user explicitly selected a run (historical), show that
+  // 2. If no selection but streaming is active, show current run
+  // 3. Otherwise show nothing
+  const displayRunId = selectedRunId || (isStreaming ? currentRunId : null);
   const displayProgress = useMemo(() => {
     if (!displayRunId) return null;
     return getRunProgress(displayRunId);
@@ -357,6 +360,21 @@ export default function Home() {
         refreshSessionListInBackground();
       });
   }, [currentSession, activeRun, clearAllProgress, stopStreaming, refreshSessionListInBackground]);
+
+  // Stop the current thinking/reasoning turn only, keep session alive
+  const handleStopThinking = useCallback(() => {
+    // Stop any active streaming
+    stopStreaming();
+
+    // Clear processing state
+    setIsProcessing(false);
+
+    // Clear active run tracking
+    setActiveRun(null);
+
+    // Keep selectedRunId pointing to the interrupted run so user can see partial progress
+    // Don't clear messages, session, or progress - just stop the current turn
+  }, [stopStreaming]);
 
   // View a session (active or ended)
   const handleViewSession = useCallback(async (sessionId: string) => {
@@ -569,6 +587,7 @@ export default function Home() {
         sessionTitle={currentSession?.title}
         hasActiveSession={!!currentSession}
         logoSrc="/logo.png"
+        onNavigateHome={handleNewChat}
       />
 
       {/* Error Banner */}
@@ -603,6 +622,7 @@ export default function Home() {
             onUpload={handleUpload}
             onDeleteDocument={handleDeleteDocument}
             onSelectDocument={handleSelectDocument}
+            onStopThinking={handleStopThinking}
             onEndSession={handleEndSession}
             onViewSession={handleViewSession}
             onDeleteSession={handleDeleteSession}
