@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # Server
     host: str = os.getenv("HOST", "127.0.0.1")
-    port: int = int(os.getenv("PORT", "8000"))
+    port: int = int(os.getenv("PORT", "9124"))
 
     # Model defaults
     default_model: str = os.getenv("DEFAULT_MODEL", "claude-opus-4-5-20251101")
