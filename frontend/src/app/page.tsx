@@ -322,6 +322,7 @@ export default function Home() {
 
     const wasActiveSession = currentSession.status === 'active';
     const sessionIdToEnd = currentSession.session_id;
+    const hasMessages = messages.length > 0;
 
     // Clear active run if this session had one
     if (activeRun?.sessionId === sessionIdToEnd) {
@@ -335,7 +336,23 @@ export default function Home() {
       return newCache;
     });
 
-    // Optimistic UI: Clear session immediately (don't wait for API)
+    // Optimistic UI: Update session list immediately
+    // - If session has messages: move to "ended" status (will appear in history)
+    // - If session has no messages: remove entirely (backend will delete it)
+    setSessionHistory((prev) => {
+      if (!hasMessages) {
+        // Remove session entirely (backend deletes empty sessions)
+        return prev.filter((s) => s.session_id !== sessionIdToEnd);
+      }
+      // Mark as ended in the list
+      return prev.map((s) =>
+        s.session_id === sessionIdToEnd
+          ? { ...s, status: 'ended' as const, ended_at: new Date().toISOString() }
+          : s
+      );
+    });
+
+    // Clear current view
     setCurrentSession(null);
     setMessages([]);
     clearAllProgress();
@@ -348,18 +365,17 @@ export default function Home() {
       return;
     }
 
-    // For active sessions, end them via API in background (non-blocking)
-    api.endSession(sessionIdToEnd)
-      .then(() => {
-        // Refresh session list in background after successful end
-        refreshSessionListInBackground();
-      })
-      .catch((error) => {
-        console.error('Failed to end session:', error);
-        // Session is already cleared from UI, so just refresh the list
-        refreshSessionListInBackground();
-      });
-  }, [currentSession, activeRun, clearAllProgress, stopStreaming, refreshSessionListInBackground]);
+    // For active sessions, end them via API
+    try {
+      await api.endSession(sessionIdToEnd);
+      // Success - do a background refresh to sync any server-side changes
+      refreshSessionListInBackground();
+    } catch (error) {
+      console.error('Failed to end session:', error);
+      // On failure, refresh to get actual state from server (rollback)
+      refreshSessionListInBackground();
+    }
+  }, [currentSession, messages.length, activeRun, clearAllProgress, stopStreaming, refreshSessionListInBackground]);
 
   // Stop the current thinking/reasoning turn only, keep session alive
   const handleStopThinking = useCallback(() => {
@@ -378,61 +394,81 @@ export default function Home() {
 
   // View a session (active or ended)
   const handleViewSession = useCallback(async (sessionId: string) => {
-    try {
-      setAppError(null);
+    setAppError(null);
 
-      // Cache current session's messages before switching (if we have a current session)
-      if (currentSession && messages.length > 0) {
+    // Cache current session's messages before switching (if we have a current session)
+    if (currentSession && messages.length > 0) {
+      setSessionMessagesCache((cache) => {
+        const newCache = new Map(cache);
+        newCache.set(currentSession.session_id, messages);
+        return newCache;
+      });
+    }
+
+    // Check if we're returning to a session with an active run
+    const isReturningToActiveRun = activeRun?.sessionId === sessionId;
+
+    // FAST PATH: Returning to an active run - restore from cache immediately, no API call
+    if (isReturningToActiveRun) {
+      const cachedMessages = sessionMessagesCache.get(sessionId);
+      // Find session info from sessionHistory (already in memory)
+      const sessionInfo = sessionHistory.find((s) => s.session_id === sessionId);
+
+      if (sessionInfo) {
+        // Restore UI immediately from memory - no await needed
+        setCurrentSession(sessionInfo);
+        setMessages(cachedMessages || []);
+        setViewingEndedSession(false);
+        setIsProcessing(true);
+        setSelectedRunId(activeRun.runId);
+        // Progress is already in allProgress from the stream
+        return;
+      }
+    }
+
+    // FAST PATH: Use session info from sessionHistory for immediate UI update
+    const sessionInfo = sessionHistory.find((s) => s.session_id === sessionId);
+    const cachedMessages = sessionMessagesCache.get(sessionId);
+
+    if (sessionInfo) {
+      // Show session immediately with cached/placeholder data
+      setCurrentSession(sessionInfo);
+      setMessages(cachedMessages || []);
+      setViewingEndedSession(sessionInfo.status === 'ended');
+      setIsProcessing(false);
+
+      // If we have cached messages, select the last run immediately
+      if (cachedMessages && cachedMessages.length > 0) {
+        const lastAssistantMsg = [...cachedMessages].reverse().find(m => m.role === 'assistant' && m.run_id);
+        if (lastAssistantMsg?.run_id) {
+          setSelectedRunId(lastAssistantMsg.run_id);
+        }
+      }
+    }
+
+    // BACKGROUND: Fetch full session data and update if different
+    try {
+      const { session, messages: serverMessages } = await api.getSession(sessionId);
+
+      // Update with server data (may have newer messages)
+      setCurrentSession(session);
+      setMessages(serverMessages);
+      setViewingEndedSession(session.status === 'ended');
+
+      // Update cache with fresh data
+      if (serverMessages.length > 0) {
         setSessionMessagesCache((cache) => {
           const newCache = new Map(cache);
-          newCache.set(currentSession.session_id, messages);
+          newCache.set(sessionId, serverMessages);
           return newCache;
         });
       }
 
-      // Check if we're returning to a session with an active run
-      const isReturningToActiveRun = activeRun?.sessionId === sessionId;
-
-      if (isReturningToActiveRun) {
-        // Restore from cache - the run is still processing
-        const cachedMessages = sessionMessagesCache.get(sessionId);
-        if (cachedMessages) {
-          // Restore cached messages
-          setMessages(cachedMessages);
-          // Restore the session (fetch fresh to get latest status)
-          const { session } = await api.getSession(sessionId);
-          setCurrentSession(session);
-          setViewingEndedSession(false);
-          setIsProcessing(true); // Re-enable processing indicator
-          setSelectedRunId(activeRun.runId); // Re-select the active run
-          // Progress is already in allProgress from the stream, no need to reload
-          refreshSessionListInBackground();
-          return;
-        }
-      }
-
-      // Load core session data first (required for UI)
-      const { session, messages: sessionMessages } = await api.getSession(sessionId);
-
-      // Update UI immediately with session data
-      setCurrentSession(session);
-      setMessages(sessionMessages);
-      setViewingEndedSession(session.status === 'ended');
-
-      // Only set isProcessing to false if this session doesn't have an active run
-      if (!isReturningToActiveRun) {
-        setIsProcessing(false);
-      }
-
-      // Don't clear all progress - just load this session's progress
-      // This preserves the streaming progress for the active run
-
-      // Auto-select the last assistant message's run_id
-      const lastAssistantMsg = [...sessionMessages].reverse().find(m => m.role === 'assistant' && m.run_id);
+      // Auto-select the last assistant message's run_id for progress viewing
+      const lastAssistantMsg = [...serverMessages].reverse().find(m => m.role === 'assistant' && m.run_id);
       if (lastAssistantMsg?.run_id) {
         setSelectedRunId(lastAssistantMsg.run_id);
-        // Load progress in background (non-blocking) - UI is already shown
-        // Only load if we don't already have it (streaming run progress is already stored)
+        // Load progress in background if we don't have it
         if (!getRunProgress(lastAssistantMsg.run_id)) {
           api.getRunProgress(sessionId, lastAssistantMsg.run_id)
             .then((events) => {
@@ -444,17 +480,21 @@ export default function Home() {
               // Ignore progress load errors
             });
         }
-      } else {
+      } else if (!cachedMessages || cachedMessages.length === 0) {
+        // Only clear selection if we didn't already set it from cache
         setSelectedRunId(null);
       }
 
-      // Refresh session list in background (non-blocking)
+      // Refresh session list in background
       refreshSessionListInBackground();
     } catch (error) {
       console.error('Failed to load session:', error);
-      setAppError(error instanceof Error ? error.message : 'Failed to load session');
+      // Only show error if we didn't have cached data to show
+      if (!sessionInfo) {
+        setAppError(error instanceof Error ? error.message : 'Failed to load session');
+      }
     }
-  }, [currentSession, messages, activeRun, sessionMessagesCache, getRunProgress, loadHistoricalProgress, refreshSessionListInBackground]);
+  }, [currentSession, messages, activeRun, sessionMessagesCache, sessionHistory, getRunProgress, loadHistoricalProgress, refreshSessionListInBackground]);
 
   // Permanently delete a session from history
   const handleDeleteSession = useCallback(async (sessionId: string) => {
@@ -529,20 +569,22 @@ export default function Home() {
     }
   }, [currentSession, isProcessing, startStreaming]);
 
-  // Handle message selection in chat
-  const handleSelectMessage = useCallback(async (runId: string | null) => {
+  // Handle message selection in chat - non-blocking for instant UI response
+  const handleSelectMessage = useCallback((runId: string | null) => {
+    // Update selection immediately - UI responds instantly
     setSelectedRunId(runId);
 
-    // If selecting a run and we don't have its progress, fetch it from API
+    // If selecting a run and we don't have its progress, fetch it in background (non-blocking)
     if (runId && currentSession && !getRunProgress(runId)) {
-      try {
-        const events = await api.getRunProgress(currentSession.session_id, runId);
-        if (events.length > 0) {
-          loadHistoricalProgress(runId, events as unknown as import('@/lib/types').ProgressEvent[]);
-        }
-      } catch (error) {
-        console.error('Failed to load historical progress:', error);
-      }
+      api.getRunProgress(currentSession.session_id, runId)
+        .then((events) => {
+          if (events.length > 0) {
+            loadHistoricalProgress(runId, events as unknown as import('@/lib/types').ProgressEvent[]);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to load historical progress:', error);
+        });
     }
   }, [currentSession, getRunProgress, loadHistoricalProgress]);
 
