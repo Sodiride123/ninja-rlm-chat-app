@@ -28,4 +28,4 @@ echo "    Backend PID: $!"
 
 echo "==> Starting frontend..."
 cd "$APP_DIR/frontend"
-nohup npm run dev -- -H 0.0.0.0 > /tmp/frontend.log 2>&1 &
+nohup npm run dev -- -H 0.0.0.0 -p 3001 > /tmp/frontend.log 2>&1 &
