@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     port: int = int(os.getenv("PORT", "9124"))
 
     # Model defaults
-    default_model: str = os.getenv("DEFAULT_MODEL", "claude-opus-4-5-20251101")
+    default_model: str = os.getenv("DEFAULT_MODEL", "claude-opus-4-6")
 
     # RLM settings - reduced iterations for faster responses
     rlm_max_iterations: int = int(os.getenv("RLM_MAX_ITERATIONS", "15"))
@@ -86,7 +86,7 @@ AVAILABLE_MODELS = [
         "description": "Balanced performance and speed",
     },
     {
-        "id": "claude-opus-4-5-20251101",
+        "id": "claude-opus-4-6",
         "name": "Claude Opus 4.5",
         "provider": "anthropic",
         "description": "Most capable model for complex reasoning",

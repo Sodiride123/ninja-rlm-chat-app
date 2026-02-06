@@ -209,7 +209,7 @@ Environment variables (set in `.env`):
 | `ANTHROPIC_BASE_URL` | LiteLLM proxy URL | (required for Claude models) |
 | `ANTHROPIC_AUTH_TOKEN` | LiteLLM virtual key | (required for Claude models) |
 | `OPENAI_API_KEY` | Your OpenAI API key | (required for GPT models) |
-| `DEFAULT_MODEL` | Default model to use | `claude-opus-4-5-20251101` |
+| `DEFAULT_MODEL` | Default model to use | `claude-opus-4-6` |
 | `HOST` | Backend server host | `127.0.0.1` |
 | `PORT` | Backend server port | `9124` |
 | `RLM_MAX_ITERATIONS` | Max RLM iterations per query | `15` |
