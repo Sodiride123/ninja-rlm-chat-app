@@ -20,11 +20,11 @@ EOF
 echo "    .env created"
 
 echo "==> Starting backend..."
-screen -dmS rlm-backend bash -c "cd $APP_DIR && source backend/.venv/bin/activate && PYTHONPATH=$APP_DIR uvicorn backend.main:app --host 0.0.0.0 --port 9124"
+cd "$APP_DIR"
+source backend/.venv/bin/activate
+PYTHONPATH="$APP_DIR" nohup uvicorn backend.main:app --host 0.0.0.0 --port 9124 > /tmp/backend.log 2>&1 &
+echo "    Backend PID: $!"
 
 echo "==> Starting frontend..."
-screen -dmS rlm-frontend bash -c "cd $APP_DIR/frontend && npm run dev -- -H 0.0.0.0"
-
-sleep 2
-echo "==> Done! App running at http://localhost:3001"
-screen -ls
+cd "$APP_DIR/frontend"
+nohup npm run dev -- -H 0.0.0.0 > /tmp/frontend.log 2>&1 &
